@@ -45,7 +45,40 @@
     for(const request of requests){const {id,...changes}=request;check(await db.from('customer_requests').update(changes).eq('id',id))}
     const complaints=state.complaints.map(c=>({id:c.id,status:c.status,assignee:c.assigneeId||null,internal_notes:c.internalNotes||''}));
     for(const complaint of complaints){const {id,...changes}=complaint;check(await db.from('customer_complaints').update(changes).eq('id',id))}
-    if(document.querySelector('[data-cms-save],[data-cms-publish]')){const draft={headline:state.cms.headline,subhead:state.cms.subhead,theme:state.cms.theme,sections:state.cms.sections,images:state.cms.images};if(state.cms.cloudAction==='publish'){check(await db.from('site_content').upsert({id:1,...draft,published:true,draft,updated_by:user.id},{onConflict:'id'}));state.cms.cloudAction='draft'}else check(await db.from('site_content').update({draft,updated_by:user.id}).eq('id',1))}
+    if(document.querySelector('[data-cms-save],[data-cms-publish]')){
+      // Always build a sections array that embeds the latest sectionContent for every section,
+      // so text edits are never lost even if the admin didn't explicitly re-open each section editor.
+      const knownSectionKeys=['hero','about','services','workers','cta','testimonials'];
+      const domList=document.querySelector('[data-cms-sections]');
+      let orderedSections;
+      if(domList){
+        orderedSections=[...domList.querySelectorAll('.cms-section')].map(item=>({
+          key:item.dataset.section,
+          visible:item.querySelector('[data-section-toggle]')?.checked??true,
+          content:{...(state.cms.sectionContent[item.dataset.section]||{})}
+        }));
+        // Append any known sections not present in the DOM list
+        for(const key of knownSectionKeys){
+          if(!orderedSections.some(s=>s.key===key)){
+            orderedSections.push({key,visible:true,content:{...(state.cms.sectionContent[key]||{})}});
+          }
+        }
+      } else {
+        // Fallback: use state.cms.sections but always merge latest sectionContent into content
+        orderedSections=(Array.isArray(state.cms.sections)&&state.cms.sections.length?state.cms.sections:knownSectionKeys.map(k=>({key:k,visible:true,content:{}}))).map(s=>{
+          const key=typeof s==='string'?s:s.key;
+          return {key,visible:typeof s==='object'?s.visible??true:true,content:{...(state.cms.sectionContent[key]||{})}};
+        });
+      }
+      const draft={headline:state.cms.headline,subhead:state.cms.subhead,theme:state.cms.theme,sections:orderedSections,images:state.cms.images};
+      if(state.cms.cloudAction==='publish'){
+        check(await db.from('site_content').upsert({id:1,...draft,published:true,draft,updated_by:user.id},{onConflict:'id'}));
+        state.cms.cloudAction='draft';
+      } else {
+        // Save draft — also update top-level columns and keep published status unchanged
+        check(await db.from('site_content').update({headline:draft.headline,subhead:draft.subhead,theme:draft.theme,sections:draft.sections,images:draft.images,draft,updated_by:user.id}).eq('id',1));
+      }
+    }
     if(document.querySelector('[data-cms-save],[data-cms-publish]'))toast(cmsAction==='publish'?'تم نشر التغييرات على الموقع.':'حُفظت المسودة على الخادم.');
   }catch(error){console.error('Supabase save failed',error);toast('تعذر مزامنة التغييرات. تحقق من الاتصال والصلاحيات.')}}
   async function loadCloudState(){const db=backend?.client;if(!db)return;try{const [workersResult,requestsResult,complaintsResult,cmsResult,staffResult]=await Promise.all([db.from('workers').select('*'),db.from('customer_requests').select('*').order('created_at',{ascending:false}),db.from('customer_complaints').select('*').order('created_at',{ascending:false}),db.from('site_content').select('*').eq('id',1).maybeSingle(),db.from('staff_directory').select('user_id,full_name,role,active')]);state.staffDirectory=staffResult.data||[];if(workersResult.data){state.workers=workersResult.data.map(w=>({...w,cvId:w.cv_path,cvPath:w.cv_path,cvFileName:w.cv_file_name,photoPath:w.photo_path,createdBy:w.created_by,totalRecruitmentCost:w.total_recruitment_cost,availability:w.availability,publication:w.publication}));state.workers=await hydrateWorkerPhotos(state.workers);state.cvRecords=workersResult.data.map(w=>({id:w.cv_path,fileName:w.cv_file_name,ref:w.ref,date:new Date(w.created_at).toLocaleDateString('ar-SA'),extracted:w.extracted,cloud:true}))}if(requestsResult.data){state.requests=requestsResult.data.map(r=>({id:r.id,name:r.customer_name,mobile:r.mobile,service:r.service,preference:[r.nationality||'بدون تفضيل',r.profession||'المهنة غير محددة'].join(' · '),date:new Date(r.created_at).toLocaleString('ar-SA'),status:r.status,assigneeId:r.assignee||'',assignee:state.staffDirectory.find(staff=>staff.user_id===r.assignee)?.full_name||'غير معين',notes:r.notes,internalNotes:r.internal_notes}))}if(complaintsResult.data){state.complaints=complaintsResult.data.map(c=>({id:c.id,phone:c.phone,complaintText:c.complaint_text,status:c.status,source:c.source,date:new Date(c.created_at).toLocaleString('ar-SA'),assigneeId:c.assignee||'',assignee:state.staffDirectory.find(staff=>staff.user_id===c.assignee)?.full_name||'غير معين',internalNotes:c.internal_notes}))}const complaintAssignee=document.querySelector('#complaintAssignee');if(complaintAssignee&&state.staffDirectory.length)complaintAssignee.innerHTML='<option value="">غير معين</option>'+state.staffDirectory.filter(staff=>staff.active!==false).map(staff=>`<option value="${esc(staff.user_id)}">${esc(staff.full_name)}</option>`).join('');const assigneeSelect=document.querySelector('#detailAssignee');if(assigneeSelect&&state.staffDirectory.length)assigneeSelect.innerHTML='<option value="">غير معين</option>'+state.staffDirectory.filter(staff=>staff.active!==false).map(staff=>`<option value="${esc(staff.user_id)}">${esc(staff.full_name)}</option>`).join('');if(cmsResult.data){const c=cmsResult.data,d=c.draft||{};state.cms={...state.cms,headline:d.headline??c.headline,subhead:d.subhead??c.subhead,theme:d.theme??c.theme,sections:d.sections??c.sections,sectionContent:{...state.cms.sectionContent,...Object.fromEntries((d.sections??c.sections??[]).filter(item=>item&&typeof item==='object').map(item=>[item.key,item.content||{}]))},images:d.images??c.images,published:c.published};state.cms.theme=themeAliases[state.cms.theme]||state.cms.theme||'sky-light';state.cms.sectionContent.hero={...state.cms.sectionContent.hero,title:state.cms.sectionContent.hero?.title||state.cms.headline,description:state.cms.sectionContent.hero?.description||state.cms.subhead}}document.querySelectorAll('[data-cms-field]').forEach(field=>{if(state.cms[field.dataset.cmsField]!==undefined)field.value=state.cms[field.dataset.cmsField]});document.querySelectorAll('[data-cms-theme-choice]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.cmsThemeChoice===(state.cms.theme||'sky-light'))));document.querySelectorAll('.cms-preview').forEach(preview=>preview.dataset.siteTheme=state.cms.theme||'sky-light');document.querySelectorAll('[data-cms-image]').forEach(input=>{const key=input.dataset.cmsImage,image=state.cms.images?.[key],preview=document.querySelector(`[data-cms-image-preview="${key}"]`);if(image&&preview)preview.src=image});setCmsVideoPreview(state.cms.images?.video);document.body.dataset.siteTheme=state.cms.theme||'sky-light';document.querySelectorAll('[data-cms-theme-choice]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.cmsThemeChoice===(state.cms.theme||'sky-light'))));localStorage.setItem(STORAGE_KEY,JSON.stringify(state));refreshDashboard();refreshWorkers();refreshCvRecords();refreshRequests();refreshComplaints();document.dispatchEvent(new Event('rakaez-cms-loaded'))}catch(error){console.error('Supabase load failed',error);toast('تعذر تحميل البيانات من قاعدة البيانات.')}}
