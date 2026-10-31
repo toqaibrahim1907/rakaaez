@@ -60,3 +60,14 @@ img,video,svg,canvas,iframe{max-width:100%;height:auto}
   .admin-topbar .avatar-chip{display:none}
   .support-chat-launch{padding:10px 14px}
 }
+
+/* Mobile chat: pin to the visible viewport so the keyboard cannot cover it. */
+@media(max-width:767px){
+  .support-chat{position:fixed;right:10px;bottom:max(10px,env(safe-area-inset-bottom));z-index:1100;max-width:calc(100vw - 20px)}
+  .support-chat.is-open .support-chat-launch{visibility:hidden;pointer-events:none}
+  .support-chat-panel{position:fixed;inset-inline:8px;top:calc(var(--chat-visual-top,0px) + 8px);right:8px;bottom:auto;width:auto;max-width:none;height:min(680px,calc(var(--chat-visual-height,100dvh) - var(--chat-visual-top,0px) - 16px));max-height:calc(var(--chat-visual-height,100dvh) - var(--chat-visual-top,0px) - 16px);border-radius:18px;overscroll-behavior:contain}
+  .support-chat-head,.support-chat-actions,.support-chat-form,.support-chat-privacy{flex-shrink:0}
+  .support-chat-messages{min-height:0;flex:1 1 auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .support-chat-form textarea{font-size:16px;max-height:90px}
+  .support-chat-actions{max-height:96px;overflow-y:auto;overscroll-behavior:contain}
+}
