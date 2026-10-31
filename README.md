@@ -55,3 +55,7 @@
 - إعداد Supabase للمتصفح موجود في `js/supabase-config.js` بمفتاح publishable. طبقي ملفات SQL المطلوبة على مشروع Supabase، وأضيفي نطاق Vercel إلى Redirect URLs في Auth.
 - لا ترفعي `.env` إلى GitHub. الملف مستثنى عبر `.gitignore`؛ ارفعي `.env.example` فقط.
 - بعد النشر، اختبري الموقع العام، نموذج الطلب، الشات، الشكوى، وتسجيل الدخول للوحة الإدارة. خزني الملفات السرية في إعدادات Vercel، ولا تضعي service-role key في المتصفح.
+
+### آراء Google Maps
+
+لجلب تقييمات الشركة مباشرةً، فعّلي Places API (New) في Google Cloud، ثم أضيفي `GOOGLE_PLACES_API_KEY` في إعدادات Vercel. يمكن ضبط `GOOGLE_PLACE_ID` اختياريًا لتثبيت صفحة الشركة الصحيحة؛ إذا لم يُضبط، يحاول الخادم العثور عليها بالاسم والعنوان. تعرض الصفحة بيانات التقييمات مع رابط Google Maps ونسبة التقييم. انتبهي إلى أن طلب حقل المراجعات عبر Places API يخضع لرسوم Google Maps Platform بحسب إعدادات حسابك.
