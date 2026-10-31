@@ -2,6 +2,9 @@ const ADMIN_STORAGE_KEY='rakaez-admin-prototype-v1';
 const backend=window.RakaezBackend;
 
 function readAdminData(){try{return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY)||'{}')}catch{return {}}}
+const SITE_THEMES=['sky-light','sky-dark','cyan-light','cyan-dark','ocean-light'];
+function applyCmsTheme(theme){const selected=SITE_THEMES.includes(theme)?theme:'sky-light';document.documentElement.dataset.siteTheme=selected;document.body.dataset.siteTheme=selected}
+applyCmsTheme(readAdminData().cms?.theme);
 function htmlEscape(value){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
 function getPublicWorkers(){
   const saved=readAdminData();
@@ -24,7 +27,7 @@ function applyCmsImages(publishedImages){
 }
 applyCmsImages();
 
-async function loadPublishedContent(){if(!backend?.ready)return;try{const [workerResult,contentResult]=await Promise.all([backend.client.from('published_workers').select('ref,name,photo_path,nationality,profession,service,availability,age,experience,total_recruitment_cost,languages,skills'),backend.client.from('site_content').select('headline,subhead,images,sections').eq('id',1).eq('published',true).maybeSingle()]);if(!workerResult.error&&workerResult.data){publicWorkers=await Promise.all(workerResult.data.map(async worker=>{let photoUrl='';if(worker.photo_path){const {data,error}=await backend.client.storage.from('worker-photos').download(worker.photo_path);if(!error&&data)photoUrl=URL.createObjectURL(data)}return {...worker,photoUrl,status:worker.availability,totalRecruitmentCost:worker.total_recruitment_cost}}));renderFeaturedWorkers();refreshPublicWorkers()}if(!contentResult.error&&contentResult.data){const content=contentResult.data;if(content.images)applyCmsImages(content.images);const title=document.querySelector('.hero-copy h1'),description=document.querySelector('.hero-copy p');if(title&&content.headline)title.textContent=content.headline;if(description&&content.subhead)description.textContent=content.subhead;for(const section of content.sections||[]){const node=document.querySelector(`[data-public-section="${CSS.escape(section.key||section)}"]`);if(node&&typeof section==='object')node.hidden=section.visible===false}}if(requestForm){const note=document.querySelector('.form-note'),submit=requestForm.querySelector('[type="submit"]');if(note)note.textContent='سيصل طلبك مباشرة إلى فريق الشركة لمتابعته.';if(submit)submit.textContent='إرسال الطلب ←'}}catch(error){console.error('Public Supabase query failed',error)}}
+async function loadPublishedContent(){if(!backend?.ready)return;try{const [workerResult,contentResult]=await Promise.all([backend.client.from('published_workers').select('ref,name,photo_path,nationality,profession,service,availability,age,experience,total_recruitment_cost,languages,skills'),backend.client.from('site_content').select('headline,subhead,theme,images,sections').eq('id',1).eq('published',true).maybeSingle()]);if(!workerResult.error&&workerResult.data){publicWorkers=await Promise.all(workerResult.data.map(async worker=>{let photoUrl='';if(worker.photo_path){const {data,error}=await backend.client.storage.from('worker-photos').download(worker.photo_path);if(!error&&data)photoUrl=URL.createObjectURL(data)}return {...worker,photoUrl,status:worker.availability,totalRecruitmentCost:worker.total_recruitment_cost}}));renderFeaturedWorkers();refreshPublicWorkers()}if(!contentResult.error&&contentResult.data){const content=contentResult.data;applyCmsTheme(content.theme);if(content.images)applyCmsImages(content.images);const title=document.querySelector('.hero-copy h1'),description=document.querySelector('.hero-copy p');if(title&&content.headline)title.textContent=content.headline;if(description&&content.subhead)description.textContent=content.subhead;for(const section of content.sections||[]){const node=document.querySelector(`[data-public-section="${CSS.escape(section.key||section)}"]`);if(node&&typeof section==='object')node.hidden=section.visible===false}}if(requestForm){const note=document.querySelector('.form-note'),submit=requestForm.querySelector('[type="submit"]');if(note)note.textContent='سيصل طلبك مباشرة إلى فريق الشركة لمتابعته.';if(submit)submit.textContent='إرسال الطلب ←'}}catch(error){console.error('Public Supabase query failed',error)}}
 loadPublishedContent();
 
 let publicWorkers=getPublicWorkers();
@@ -38,7 +41,7 @@ if(workerResults){
   function updateWorkers(){const [search,nation,profession,service,status]=filters.map(element=>element?.value.trim()||'');const matches=publicWorkers.filter(worker=>(!search||worker.ref.toLowerCase().includes(search.toLowerCase()))&&(!nation||worker.nationality===nation)&&(!profession||worker.profession===profession)&&(!service||worker.service===service)&&(!status||worker.status===status));workerResults.innerHTML=matches.length?matches.map(workerCard).join(''):'<div class="col-12"><div class="filter-panel text-center py-5 text-secondary">لا توجد بطاقات تطابق خيارات البحث.</div></div>'}
   refreshPublicWorkers=updateWorkers;filters.forEach(element=>element?.addEventListener('input',updateWorkers));filters.forEach(element=>element?.addEventListener('change',updateWorkers));updateWorkers();
 }
-window.addEventListener('storage',event=>{if(event.key!==ADMIN_STORAGE_KEY||backend?.ready)return;applyCmsImages();publicWorkers=getPublicWorkers();renderFeaturedWorkers();refreshPublicWorkers()});
+window.addEventListener('storage',event=>{if(event.key!==ADMIN_STORAGE_KEY||backend?.ready)return;applyCmsImages();applyCmsTheme(readAdminData().cms?.theme);publicWorkers=getPublicWorkers();renderFeaturedWorkers();refreshPublicWorkers()});
 
 const requestForm=document.querySelector('#requestForm');
 if(requestForm){
@@ -52,3 +55,4 @@ if(requestForm){
     try{localStorage.setItem(ADMIN_STORAGE_KEY,JSON.stringify(data));const message=document.querySelector('#formMessage');message.className='form-message show success';message.textContent=`تم حفظ الطلب ${id} في هذا المتصفح وسيظهر في لوحة الإدارة المحلية. لم يتم إرساله إلى خادم الشركة.`;requestForm.reset()}catch{const message=document.querySelector('#formMessage');message.className='form-message show error';message.textContent='تعذر حفظ الطلب محليًا. لم يتم إرساله إلى خادم الشركة.'}
   });
 }
+
