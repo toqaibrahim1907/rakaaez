@@ -5,7 +5,7 @@ create extension if not exists pgcrypto;
 create table if not exists public.employee_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   full_name text not null,
-  role text not null check (role in ('super_admin','content_manager','workers_manager','requests_manager')),
+  role text not null check (role in ('super_admin','content_manager','workers_manager','requests_manager','admin')),
   active boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -16,7 +16,7 @@ as $$ select role from public.employee_profiles where user_id = auth.uid() and a
 revoke all on function public.employee_role() from public;
 grant execute on function public.employee_role() to authenticated;
 create or replace view public.staff_directory as
-  select user_id,full_name,role from public.employee_profiles where active=true;
+  select user_id,full_name,role,active from public.employee_profiles;
 revoke all on public.staff_directory from public;
 grant select on public.staff_directory to authenticated;
 
@@ -96,10 +96,16 @@ create policy "super admins manage employee profiles" on public.employee_profile
 drop policy if exists "public sees available published workers" on public.workers;
 drop policy if exists "worker managers read all workers" on public.workers;
 create policy "worker managers read all workers" on public.workers for select to authenticated using (public.employee_role() in ('super_admin','workers_manager'));
+drop policy if exists "admins read own worker profiles" on public.workers;
+create policy "admins read own worker profiles" on public.workers for select to authenticated using (public.employee_role() = 'admin' and created_by = auth.uid());
 drop policy if exists "worker managers insert workers" on public.workers;
 create policy "worker managers insert workers" on public.workers for insert to authenticated with check (public.employee_role() in ('super_admin','workers_manager') and created_by = auth.uid());
+drop policy if exists "admins insert own worker drafts" on public.workers;
+create policy "admins insert own worker drafts" on public.workers for insert to authenticated with check (public.employee_role() = 'admin' and created_by = auth.uid() and publication = 'مسودة');
 drop policy if exists "worker managers update workers" on public.workers;
 create policy "worker managers update workers" on public.workers for update to authenticated using (public.employee_role() in ('super_admin','workers_manager')) with check (public.employee_role() in ('super_admin','workers_manager'));
+drop policy if exists "admins update own worker drafts" on public.workers;
+create policy "admins update own worker drafts" on public.workers for update to authenticated using (public.employee_role() = 'admin' and created_by = auth.uid() and publication = 'مسودة') with check (public.employee_role() = 'admin' and created_by = auth.uid() and publication = 'مسودة');
 drop policy if exists "worker managers delete workers" on public.workers;
 create policy "worker managers delete workers" on public.workers for delete to authenticated using (public.employee_role() in ('super_admin','workers_manager'));
 
@@ -116,16 +122,16 @@ grant select on public.published_workers to anon, authenticated;
 drop policy if exists "public submits requests" on public.customer_requests;
 create policy "public submits requests" on public.customer_requests for insert to anon, authenticated with check (status = 'لم يتم التواصل' and assignee is null and internal_notes = '');
 drop policy if exists "request managers read requests" on public.customer_requests;
-create policy "request managers read requests" on public.customer_requests for select to authenticated using (public.employee_role() in ('super_admin','requests_manager'));
+create policy "request managers read requests" on public.customer_requests for select to authenticated using (public.employee_role() in ('super_admin','requests_manager','admin'));
 drop policy if exists "request managers update requests" on public.customer_requests;
-create policy "request managers update requests" on public.customer_requests for update to authenticated using (public.employee_role() in ('super_admin','requests_manager')) with check (public.employee_role() in ('super_admin','requests_manager'));
+create policy "request managers update requests" on public.customer_requests for update to authenticated using (public.employee_role() in ('super_admin','requests_manager','admin')) with check (public.employee_role() in ('super_admin','requests_manager','admin'));
 
 drop policy if exists "public submits complaints" on public.customer_complaints;
 create policy "public submits complaints" on public.customer_complaints for insert to anon,authenticated with check (status='جديدة' and assignee is null and internal_notes='');
 drop policy if exists "request managers read complaints" on public.customer_complaints;
-create policy "request managers read complaints" on public.customer_complaints for select to authenticated using (public.employee_role() in ('super_admin','requests_manager'));
+create policy "request managers read complaints" on public.customer_complaints for select to authenticated using (public.employee_role() in ('super_admin','requests_manager','admin'));
 drop policy if exists "request managers update complaints" on public.customer_complaints;
-create policy "request managers update complaints" on public.customer_complaints for update to authenticated using (public.employee_role() in ('super_admin','requests_manager')) with check (public.employee_role() in ('super_admin','requests_manager'));
+create policy "request managers update complaints" on public.customer_complaints for update to authenticated using (public.employee_role() in ('super_admin','requests_manager','admin')) with check (public.employee_role() in ('super_admin','requests_manager','admin'));
 
 drop policy if exists "public reads published content" on public.site_content;
 create policy "public reads published content" on public.site_content for select to anon, authenticated using (published = true);
@@ -142,8 +148,12 @@ on conflict (id) do update set public=excluded.public,file_size_limit=excluded.f
 
 drop policy if exists "authorized staff read private cvs" on storage.objects;
 create policy "authorized staff read private cvs" on storage.objects for select to authenticated using (bucket_id='worker-cvs' and public.employee_role() in ('super_admin','workers_manager'));
+drop policy if exists "admins read own private cvs" on storage.objects;
+create policy "admins read own private cvs" on storage.objects for select to authenticated using (bucket_id='worker-cvs' and public.employee_role()='admin' and exists(select 1 from public.workers w where w.cv_path=name and w.created_by=auth.uid()));
 drop policy if exists "authorized staff upload private cvs" on storage.objects;
 create policy "authorized staff upload private cvs" on storage.objects for insert to authenticated with check (bucket_id='worker-cvs' and public.employee_role() in ('super_admin','workers_manager') and (storage.extension(name) = 'pdf'));
+drop policy if exists "admins upload private cvs" on storage.objects;
+create policy "admins upload private cvs" on storage.objects for insert to authenticated with check (bucket_id='worker-cvs' and public.employee_role()='admin' and storage.extension(name)='pdf' and (storage.foldername(name))[1]=auth.uid()::text);
 drop policy if exists "authorized staff delete private cvs" on storage.objects;
 create policy "authorized staff delete private cvs" on storage.objects for delete to authenticated using (bucket_id='worker-cvs' and public.employee_role() in ('super_admin','workers_manager'));
 
@@ -156,8 +166,12 @@ drop policy if exists "published worker photos are visible" on storage.objects;
 create policy "published worker photos are visible" on storage.objects for select to anon,authenticated using (bucket_id='worker-photos' and public.is_published_worker_photo(name));
 drop policy if exists "worker managers read worker photos" on storage.objects;
 create policy "worker managers read worker photos" on storage.objects for select to authenticated using (bucket_id='worker-photos' and public.employee_role() in ('super_admin','workers_manager'));
+drop policy if exists "admins read own worker photos" on storage.objects;
+create policy "admins read own worker photos" on storage.objects for select to authenticated using (bucket_id='worker-photos' and public.employee_role()='admin' and exists(select 1 from public.workers w where w.photo_path=name and w.created_by=auth.uid()));
 drop policy if exists "worker managers upload worker photos" on storage.objects;
 create policy "worker managers upload worker photos" on storage.objects for insert to authenticated with check (bucket_id='worker-photos' and public.employee_role() in ('super_admin','workers_manager'));
+drop policy if exists "admins upload worker photos" on storage.objects;
+create policy "admins upload worker photos" on storage.objects for insert to authenticated with check (bucket_id='worker-photos' and public.employee_role()='admin' and (storage.foldername(name))[1]=auth.uid()::text);
 drop policy if exists "worker managers delete worker photos" on storage.objects;
 create policy "worker managers delete worker photos" on storage.objects for delete to authenticated using (bucket_id='worker-photos' and public.employee_role() in ('super_admin','workers_manager'));
 

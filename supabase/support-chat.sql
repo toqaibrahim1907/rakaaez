@@ -20,8 +20,8 @@ for insert to anon,authenticated
 with check(status='جديدة' and assignee is null and internal_notes='');
 drop policy if exists "request managers read complaints" on public.customer_complaints;
 create policy "request managers read complaints" on public.customer_complaints
-for select to authenticated using(public.employee_role() in ('super_admin','requests_manager'));
+for select to authenticated using(public.employee_role() in ('super_admin','requests_manager','admin'));
 drop policy if exists "request managers update complaints" on public.customer_complaints;
 create policy "request managers update complaints" on public.customer_complaints
-for update to authenticated using(public.employee_role() in ('super_admin','requests_manager'))
-with check(public.employee_role() in ('super_admin','requests_manager'));
+for update to authenticated using(public.employee_role() in ('super_admin','requests_manager','admin'))
+with check(public.employee_role() in ('super_admin','requests_manager','admin'));
