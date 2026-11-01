@@ -1,0 +1,12 @@
+{
+  "name": "rakaez-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Installable Al Rakaez customer app and secure Web Push API",
+  "scripts": {
+    "generate-vapid": "node scripts/generate-vapid.js"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  }
+}

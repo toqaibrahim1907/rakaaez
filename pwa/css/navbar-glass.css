@@ -1,0 +1,77 @@
+/* Soft glass navigation shared by the public pages. */
+.site-header {
+  isolation: isolate;
+  background: rgba(255, 255, 255, .3);
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  backdrop-filter: blur(34px) saturate(190%);
+  border: 0;
+  box-shadow: 0 12px 30px -24px rgba(16, 47, 77, .42);
+}
+
+.site-header::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-inline: 0;
+  bottom: -10px;
+  height: 22px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(16, 47, 77, .12), transparent 85%);
+  filter: blur(10px);
+  opacity: .72;
+}
+
+.site-header .nav-link {
+  color: #17374f !important;
+  font-weight: 700;
+}
+
+.site-header .nav-link:hover,
+.site-header .nav-link.active {
+  color: #056fae !important;
+}
+
+.site-header .lockup-text strong { color: #17374f; }
+.site-header .lockup-text small { color: #526b7d; }
+.site-header .lockup-divider { background: rgba(23, 55, 79, .25); }
+
+body[data-site-theme$="-dark"] .site-header {
+  background: rgba(12, 32, 45, .34);
+  -webkit-backdrop-filter: blur(34px) saturate(190%);
+  backdrop-filter: blur(34px) saturate(190%);
+  border: 0;
+  box-shadow: 0 12px 30px -24px rgba(0, 0, 0, .6);
+}
+
+body[data-site-theme$="-dark"] .site-header::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, .24), transparent 85%);
+}
+
+body[data-site-theme$="-dark"] .site-header .nav-link { color: #e3f2f8 !important; }
+body[data-site-theme$="-dark"] .site-header .nav-link:hover,
+body[data-site-theme$="-dark"] .site-header .nav-link.active { color: #69c5f1 !important; }
+body[data-site-theme$="-dark"] .site-header .lockup-text strong { color: #eef8fc; }
+body[data-site-theme$="-dark"] .site-header .lockup-text small { color: #bdd2de; }
+body[data-site-theme$="-dark"] .site-header .lockup-divider { background: rgba(226, 241, 248, .28); }
+
+@media (max-width: 991.98px) {
+  .site-header .navbar-collapse.show {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, .48);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .78);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    backdrop-filter: blur(24px) saturate(170%);
+  }
+
+  body[data-site-theme$="-dark"] .site-header .navbar-collapse.show {
+    border-color: rgba(255, 255, 255, .12);
+    background: rgba(12, 32, 45, .82);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px))) {
+  .site-header { background: rgba(255, 255, 255, .9); }
+  body[data-site-theme$="-dark"] .site-header { background: rgba(12, 32, 45, .92); }
+}

@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "الركائز البشرية",
+  "short_name": "الركائز",
+  "description": "خدمات الاستقدام والتأجير المنزلي من الركائز البشرية.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/index.html?source=installed-app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7fafc",
+  "theme_color": "#102f4d",
+  "icons": [
+    { "src": "/assets/images/pwa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/pwa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/pwa-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

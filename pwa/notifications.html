@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102f4d">
+  <title>إرسال التنبيهات | الركائز البشرية</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/theme-palettes.css">
+  <link rel="stylesheet" href="/css/mobile.css">
+  <link rel="stylesheet" href="/css/pwa.css">
+  <link rel="stylesheet" href="/css/notifications.css">
+</head>
+<body>
+  <main class="notify-wrap">
+    <a class="notify-back" href="/index.html">← العودة إلى التطبيق</a>
+    <section class="notify-card">
+      <div class="notify-brand"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز البشرية</strong><small>إدارة تنبيهات التطبيق</small></span></div>
+      <div class="notify-intro"><span class="notify-kicker">رسائل التطبيق</span><h1>أرسلي تحديثًا للمشتركين</h1><p>تصل الرسالة إلى الأجهزة التي وافقت على التنبيهات وثبّتت التطبيق.</p></div>
+      <form id="notifyLogin" class="notify-form">
+        <label>البريد الإلكتروني<input name="email" type="email" autocomplete="username" required></label>
+        <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="notify-primary" type="submit">تسجيل دخول المدير</button>
+      </form>
+      <section id="notifyComposer" hidden>
+        <div class="notify-user"><span id="notifyUserName"></span><button type="button" id="notifyLogout">تسجيل الخروج</button></div>
+        <form id="notifyForm" class="notify-form">
+          <label>عنوان التنبيه<input name="title" maxlength="80" value="تحديث من الركائز البشرية" required></label>
+          <label>نص التنبيه<textarea name="body" maxlength="240" rows="4" placeholder="اكتبي رسالة قصيرة وواضحة" required></textarea><small>حتى 240 حرفًا</small></label>
+          <label>الصفحة عند فتح التنبيه<select name="url"><option value="/index.html">الرئيسية</option><option value="/rental.html">خدمة التأجير</option><option value="/recruitment.html">خدمة الاستقدام</option><option value="/request.html">طلب خدمة</option></select></label>
+          <button class="notify-primary" type="submit">إرسال التنبيه للمشتركين</button>
+        </form>
+        <p class="notify-note">يصل التنبيه فقط لمن فعّل الإشعارات على جهازه. لا ترسلي معلومات شخصية أو بيانات عملاء في الرسائل.</p>
+      </section>
+      <p id="notifyStatus" class="notify-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/supabase-config.js"></script>
+  <script src="/js/push-admin.js"></script>
+</body>
+</html>

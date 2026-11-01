@@ -1,0 +1,18 @@
+.site-header .navbar-brand.brand-lockup{
+  min-width:unset;display:inline-flex;align-items:center;gap:12px;direction:ltr;
+  margin:0;padding:0;color:var(--navy);transition:transform .25s ease;
+}
+.site-header .navbar-brand.brand-lockup:hover{color:var(--navy);transform:translateY(-1px)}
+.lockup-icon{width:56px;height:56px;flex:none;display:grid;place-items:center}
+.lockup-icon img{width:52px;height:52px;object-fit:contain;transform-origin:center;animation:lockup-spin 12s linear infinite}
+.lockup-divider{width:1px;height:46px;flex:none;background:#c5d3de}
+.lockup-text{display:flex;flex-direction:column;align-items:flex-start;direction:rtl;text-align:right;white-space:nowrap;line-height:1.45}
+.lockup-text strong{font-size:.98rem;font-weight:800;color:var(--navy)}
+.lockup-text small{font-size:.68rem;font-weight:600;color:#718393}
+@keyframes lockup-spin{to{transform:rotate(360deg)}}
+@media(max-width:991px){
+  .lockup-icon{width:50px;height:50px}.lockup-icon img{width:48px;height:48px}
+  .lockup-text strong{font-size:.9rem}.lockup-text small{font-size:.61rem}
+  .site-header .brand-lockup{gap:9px}
+}
+@media(prefers-reduced-motion:reduce){.lockup-icon img{animation:none}}
