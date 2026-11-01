@@ -29,8 +29,8 @@
     welcomeScheduling = true;
     try {
       const response = await fetch('/api/push/welcome-schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
-      if (!response.ok) throw new Error('welcome_schedule_failed');
       const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'welcome_schedule_failed');
       welcomeScheduled = result.scheduled || result.alreadyScheduled;
     } catch (error) {
       console.warn('Welcome notification could not be scheduled:', error?.message || error);
@@ -165,7 +165,10 @@
         if (Notification.permission === 'granted') {
           try {
             const current = await registration.pushManager.getSubscription();
-            if (current) await savePreferences(current, { notify: false });
+            if (current) {
+              await savePreferences(current, { notify: false });
+              if (standalone()) await scheduleWelcome(current, true);
+            }
             else await enableOrSavePush();
           } catch (error) { console.warn('Automatic push resume failed:', error?.message || error) }
           return;
