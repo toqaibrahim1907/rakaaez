@@ -1,6 +1,9 @@
 :root[data-site-theme="sky-light"]{--blue:#0786cf;--blue-dark:#066ba7;--navy:#102f4d;--ink:#203b52;--muted:#6d7f8e;--surface:#f7fafc;--line:#e3ebf0;--pale:#eaf3fa}
 :root[data-site-theme="cyan-light"]{--blue:#08a7d5;--blue-dark:#087fa8;--navy:#123b50;--ink:#234556;--muted:#6a818d;--surface:#f2fbfd;--line:#dceef2;--pale:#e4f7fb}
 :root[data-site-theme="ocean-light"]{--blue:#168bb9;--blue-dark:#116b8d;--navy:#103b55;--ink:#29475a;--muted:#708391;--surface:#f4f9fb;--line:#dce8ee;--pale:#e9f3f7}
+:root[data-site-theme="teal-light"]{--blue:#0d9488;--blue-dark:#0f766e;--navy:#12424a;--ink:#294b50;--muted:#6c8385;--surface:#f3faf9;--line:#dcebe8;--pale:#e5f4f1;--champagne:#a7c9bd}
+:root[data-site-theme="indigo-light"]{--blue:#4f5bd5;--blue-dark:#3b45ad;--navy:#26315d;--ink:#35415e;--muted:#75809a;--surface:#f7f8fc;--line:#e2e5f0;--pale:#eef0fb;--champagne:#b9c4ef}
+:root[data-site-theme="blue-gold-light"]{--blue:#147db2;--blue-dark:#0e618c;--navy:#16384c;--ink:#304854;--muted:#73828a;--surface:#faf8f3;--line:#eae4d7;--pale:#f5f0e6;--champagne:#c8a76b}
 :root[data-site-theme="sky-dark"]{--blue:#32a9eb;--blue-dark:#1689cb;--navy:#d7ecf7;--ink:#dce8ef;--muted:#a6bdca;--surface:#102838;--line:#254354;--pale:#18394c;--white:#0c202d}
 :root[data-site-theme="cyan-dark"]{--blue:#38c3df;--blue-dark:#16a5c4;--navy:#d9f2f6;--ink:#e0eff1;--muted:#a4bec2;--surface:#102b35;--line:#264751;--pale:#173c47;--white:#0c2028}
 body[data-site-theme$="-dark"]{background:#0b1e2a;color:var(--ink)}
@@ -16,6 +19,8 @@ body[data-site-theme$="-dark"] :is(.form-control,.form-select,.form-control:focu
 body[data-site-theme$="-dark"] :is(.form-control, .form-select)::placeholder{color:#93aeba}
 body[data-site-theme$="-dark"] .worker-cta{border-color:var(--line)}
 body[data-site-theme$="-dark"] .site-footer{background:#071722}
+.site-header{transition:background-color .25s ease,border-color .25s ease}
+.btn-primary,.nav-link,.service-panel,.worker-card,.section-heading,.site-footer{transition:color .25s ease,background-color .25s ease,border-color .25s ease}
 .theme-palette{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:9px}
 .theme-choice{display:flex;align-items:center;gap:10px;text-align:right;border:1px solid #dfe8ee;border-radius:11px;padding:10px;background:#fff;color:#294b61;font:600 .7rem Cairo,sans-serif;cursor:pointer;transition:.18s}
 .theme-choice:hover{border-color:#8dcce8;transform:translateY(-1px)}

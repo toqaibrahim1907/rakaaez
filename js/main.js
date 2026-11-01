@@ -2,7 +2,7 @@ const ADMIN_STORAGE_KEY = 'rakaez-admin-prototype-v1';
 const backend = window.RakaezBackend;
 
 function readAdminData() { try { return JSON.parse(localStorage.getItem(ADMIN_STORAGE_KEY) || '{}') } catch { return {} } }
-const SITE_THEMES = ['sky-light', 'sky-dark', 'cyan-light', 'cyan-dark', 'ocean-light'];
+const SITE_THEMES = ['sky-light', 'sky-dark', 'cyan-light', 'cyan-dark', 'ocean-light', 'teal-light', 'indigo-light', 'blue-gold-light'];
 function applyCmsTheme(theme) { const selected = SITE_THEMES.includes(theme) ? theme : 'sky-light'; document.documentElement.dataset.siteTheme = selected; document.body.dataset.siteTheme = selected }
 applyCmsTheme(readAdminData().cms?.theme);
 function htmlEscape(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])) }
