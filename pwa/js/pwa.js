@@ -5,6 +5,8 @@
   let installPrompt = null;
   let registration = null;
   let toastTimer = 0;
+  let welcomeScheduling = false;
+  let welcomeScheduled = false;
 
   const root = document.createElement('div');
   const fallbackActions = appMode ? '' : `<div class="pwa-actions" aria-label="الركائز البشرية للاستقدام"><button type="button" class="pwa-action" data-pwa-install><span aria-hidden="true">⌂</span><span>تثبيت التطبيق</span></button><button type="button" class="pwa-action pwa-action-secondary" data-pwa-push><span aria-hidden="true">تنبيهات</span><span>تفعيل التنبيهات</span></button></div>`;
@@ -21,6 +23,18 @@
   const pushOptin = root.querySelector('[data-push-optin]');
   const toast = root.querySelector('.pwa-toast');
   const showToast = message => { toast.textContent = message; toast.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.hidden = true }, 5200) };
+  async function scheduleWelcome(subscription, installed = standalone()) {
+    if (!appMode || !installed || !subscription || welcomeScheduling || welcomeScheduled) return;
+    welcomeScheduling = true;
+    try {
+      const response = await fetch('/api/push/welcome-schedule', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
+      if (!response.ok) throw new Error('welcome_schedule_failed');
+      const result = await response.json();
+      welcomeScheduled = result.scheduled || result.alreadyScheduled;
+    } catch (error) {
+      console.warn('Welcome notification could not be scheduled:', error?.message || error);
+    } finally { welcomeScheduling = false }
+  }
   const showInstallHelp = () => {
     root.querySelector('#pwa-dialog-title').textContent = 'ثبتي تطبيق الركائز البشرية للاستقدام';
     root.querySelector('[data-pwa-dialog-copy]').textContent = iOS ? 'لتثبيت التطبيق على iPhone أو iPad، اتبعي الخطوات التالية:' : 'من قائمة المتصفح اختاري «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية». ';
@@ -30,7 +44,12 @@
   const updateInstallButton = () => { if (installButton) installButton.hidden = standalone() };
   updateInstallButton();
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; updateInstallButton() });
-  window.addEventListener('appinstalled', () => { installPrompt = null; updateInstallButton(); showToast('تم تثبيت تطبيق الركائز البشرية للاستقدام بنجاح.') });
+  window.addEventListener('appinstalled', async () => {
+    installPrompt = null;
+    updateInstallButton();
+    showToast('تم تثبيت تطبيق الركائز البشرية للاستقدام بنجاح.');
+    try { const ready = await navigator.serviceWorker.ready; await scheduleWelcome(await ready.pushManager.getSubscription(), true) } catch {}
+  });
   installButton?.addEventListener('click', async () => {
     if (!installPrompt) { showInstallHelp(); return }
     installPrompt.prompt();
@@ -110,6 +129,7 @@
     const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(publicKey) });
     const response = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription, topics }) });
     if (!response.ok) { await subscription.unsubscribe(); throw new Error('تعذر حفظ اشتراك التنبيهات.'); }
+    await scheduleWelcome(subscription);
     pushOptin.hidden = true;
     try { localStorage.setItem('rakaez-pwa-push-dismissed', '1') } catch {}
     showToast('تم تفعيل تنبيهات الركائز البشرية للاستقدام.');

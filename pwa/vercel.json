@@ -5,6 +5,8 @@
     "api/reviews.js": { "maxDuration": 15 },
     "api/push/send.js": { "maxDuration": 30 },
     "api/push/daily.js": { "maxDuration": 30 },
+    "api/push/welcome-dispatch.js": { "maxDuration": 30 },
+    "api/push/welcome-schedule.js": { "maxDuration": 10 },
     "api/push/subscribe.js": { "maxDuration": 10 },
     "api/push/key.js": { "maxDuration": 10 },
     "api/push/worker-published.js": { "maxDuration": 30 }

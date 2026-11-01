@@ -5,6 +5,7 @@
     : null;
   const viewNames = ['home', 'workers', 'rental', 'recruitment', 'request', 'account'];
   const views = [...document.querySelectorAll('[data-app-view]')];
+  const homeHeader = document.querySelector('[data-app-home-header]');
   let workers = [];
   let toastTimer = 0;
   let focusedWorker = false;
@@ -57,6 +58,7 @@
       view.hidden = !active;
       view.classList.toggle('is-active', active);
     });
+    if (homeHeader) homeHeader.hidden = target !== 'home';
     document.querySelectorAll('.app-tab').forEach(tab => {
       const active = tab.dataset.openView === target;
       tab.classList.toggle('is-active', active);
