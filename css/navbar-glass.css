@@ -21,6 +21,20 @@
   opacity: .72;
 }
 
+.site-header .nav-link {
+  color: #17374f !important;
+  font-weight: 700;
+}
+
+.site-header .nav-link:hover,
+.site-header .nav-link.active {
+  color: #056fae !important;
+}
+
+.site-header .lockup-text strong { color: #17374f; }
+.site-header .lockup-text small { color: #526b7d; }
+.site-header .lockup-divider { background: rgba(23, 55, 79, .25); }
+
 body[data-site-theme$="-dark"] .site-header {
   background: rgba(12, 32, 45, .34);
   -webkit-backdrop-filter: blur(34px) saturate(190%);
@@ -32,6 +46,13 @@ body[data-site-theme$="-dark"] .site-header {
 body[data-site-theme$="-dark"] .site-header::after {
   background: linear-gradient(180deg, rgba(0, 0, 0, .24), transparent 85%);
 }
+
+body[data-site-theme$="-dark"] .site-header .nav-link { color: #e3f2f8 !important; }
+body[data-site-theme$="-dark"] .site-header .nav-link:hover,
+body[data-site-theme$="-dark"] .site-header .nav-link.active { color: #69c5f1 !important; }
+body[data-site-theme$="-dark"] .site-header .lockup-text strong { color: #eef8fc; }
+body[data-site-theme$="-dark"] .site-header .lockup-text small { color: #bdd2de; }
+body[data-site-theme$="-dark"] .site-header .lockup-divider { background: rgba(226, 241, 248, .28); }
 
 @media (max-width: 991.98px) {
   .site-header .navbar-collapse.show {
