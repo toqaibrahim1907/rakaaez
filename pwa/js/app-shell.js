@@ -64,7 +64,7 @@
       } catch {}
     }
 
-    if (targetView() !== 'home' || document.querySelector('.rental-promo-backdrop')) return;
+    if (!videoUrl || targetView() !== 'home' || document.querySelector('.rental-promo-backdrop')) return;
     const backdrop = document.createElement('div');
     backdrop.className = 'rental-promo-backdrop';
     backdrop.hidden = true;
@@ -76,60 +76,26 @@
           <span class="rental-promo-badge"><i aria-hidden="true"></i> خدمة جديدة</span>
           <h2 id="rentalPromoTitle">التأجير الشهري صار أسهل</h2>
           <p id="rentalPromoDescription">نوفر لك عمالة منزلية بنظام الإيجار الشهري بعقود نظامية معتمدة، راحة ومرونة والتزام كامل بالأنظمة.</p>
-          <button class="rental-promo-sound" type="button" aria-pressed="false" hidden>تشغيل الصوت</button>
           <button class="rental-promo-cta" type="button" data-open-view="rental">استكشف باقات التأجير <span aria-hidden="true">←</span></button>
         </div>
       </section>`;
     document.body.append(backdrop);
 
     const media = backdrop.querySelector('.rental-promo-media');
-    const poster = '/assets/images/home-promo-rental.jpg';
-    let promoVideo = null;
-    const soundButton = backdrop.querySelector('.rental-promo-sound');
-    if (videoUrl) {
-      const video = document.createElement('video');
-      promoVideo = video;
-      video.className = 'rental-promo-video';
-      video.src = videoUrl;
-      video.poster = poster;
-      video.autoplay = false;
-      video.muted = false;
-      video.defaultMuted = false;
-      video.volume = 1;
-      video.loop = true;
-      video.playsInline = true;
-      video.preload = 'metadata';
-      video.setAttribute('aria-label', 'فيديو خدمة التأجير الشهري');
-      media.append(video);
-      soundButton.hidden = false;
-    } else {
-      const image = document.createElement('img');
-      image.className = 'rental-promo-video';
-      image.src = poster;
-      image.alt = 'خدمة التأجير الشهري في منزل عائلي';
-      media.append(image);
-    }
+    const promoVideo = document.createElement('video');
+    promoVideo.className = 'rental-promo-video';
+    promoVideo.src = videoUrl;
+    promoVideo.autoplay = false;
+    promoVideo.muted = false;
+    promoVideo.defaultMuted = false;
+    promoVideo.volume = 1;
+    promoVideo.loop = true;
+    promoVideo.playsInline = true;
+    promoVideo.preload = 'auto';
+    promoVideo.setAttribute('aria-label', 'فيديو خدمة التأجير الشهري');
+    media.append(promoVideo);
 
     const dialog = backdrop.querySelector('.rental-promo-dialog');
-    soundButton.addEventListener('click', async () => {
-      if (!promoVideo) return;
-      if (!promoVideo.muted) {
-        promoVideo.muted = true;
-        soundButton.textContent = 'تشغيل الصوت';
-        soundButton.setAttribute('aria-pressed', 'false');
-        return;
-      }
-      promoVideo.muted = false;
-      promoVideo.volume = 1;
-      try {
-        await promoVideo.play();
-        soundButton.textContent = 'إيقاف الصوت';
-        soundButton.setAttribute('aria-pressed', 'true');
-      } catch {
-        soundButton.textContent = 'اضغطي لتشغيل الصوت';
-        soundButton.setAttribute('aria-pressed', 'false');
-      }
-    });
     const close = () => {
       backdrop.hidden = true;
       document.body.classList.remove('has-rental-promo');
@@ -148,14 +114,7 @@
       backdrop.hidden = false;
       document.body.classList.add('has-rental-promo');
       dialog.focus({ preventScroll: true });
-      if (promoVideo) promoVideo.play().then(() => {
-        soundButton.textContent = 'إيقاف الصوت';
-        soundButton.setAttribute('aria-pressed', 'true');
-      }).catch(() => {
-        promoVideo.muted = true;
-        soundButton.textContent = 'تشغيل الصوت';
-        soundButton.setAttribute('aria-pressed', 'false');
-      });
+      promoVideo.play().catch(() => {});
     }, 1650);
   }
 
