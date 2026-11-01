@@ -29,11 +29,13 @@ module.exports = async function handler(req, res) {
     if (!await requireSuperAdmin(req)) return res.status(403).json({ error: 'super_admin_required' });
     const title = String(req.body?.title || '').trim().slice(0, 80);
     const body = String(req.body?.body || '').trim().slice(0, 240);
+    const topic = ['all', 'workers', 'rental'].includes(req.body?.topic) ? req.body.topic : 'all';
     const target = String(req.body?.url || '/index.html').trim();
     if (!title || !body || !target.startsWith('/') || target.startsWith('//')) return res.status(400).json({ error: 'invalid_notification' });
 
     webpush.setVapidDetails(process.env.VAPID_SUBJECT, process.env.VAPID_PUBLIC_KEY, process.env.VAPID_PRIVATE_KEY);
-    const list = await fetch(`${SUPABASE_URL}/rest/v1/pwa_push_subscriptions?select=endpoint,p256dh,auth`, { headers: adminHeaders() });
+    const topicFilter = topic === 'workers' ? '&notify_workers=eq.true' : topic === 'rental' ? '&notify_rental=eq.true' : '&or=(notify_workers.eq.true,notify_rental.eq.true)';
+    const list = await fetch(`${SUPABASE_URL}/rest/v1/pwa_push_subscriptions?select=endpoint,p256dh,auth${topicFilter}`, { headers: adminHeaders() });
     if (!list.ok) return res.status(502).json({ error: 'subscription_list_failed' });
     const subscriptions = await list.json();
     const payload = JSON.stringify({ title, body, url: target, tag: `rakaez-${Date.now()}` });

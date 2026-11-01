@@ -1,13 +1,13 @@
-const CACHE_VERSION = 'rakaez-pwa-v1';
+const CACHE_VERSION = 'rakaez-pwa-v2';
 const APP_SHELL = [
   '/index.html', '/about.html', '/contact.html', '/services.html', '/rental.html',
   '/recruitment.html', '/workers.html', '/request.html', '/offline.html',
   '/manifest.webmanifest', '/css/styles.css', '/css/brand-lockup.css',
   '/css/design-enhancements.css', '/css/theme-palettes.css', '/css/mobile.css',
-  '/css/navbar-glass.css', '/css/footer-polish.css', '/css/pwa.css',
+  '/css/navbar-glass.css', '/css/footer-polish.css', '/css/pwa.css', '/css/pwa-app.css',
   '/js/main.js', '/js/motion.js', '/js/rental-announcement.js',
   '/js/supabase-config.js', '/js/supabase-client.js', '/js/support-chat.js',
-  '/js/pwa.js', '/assets/images/logo-mark-refined.png',
+  '/js/pwa.js', '/js/app-shell.js', '/assets/images/logo-mark-refined.png',
   '/assets/images/pwa-192.png', '/assets/images/pwa-512.png',
   '/assets/images/pwa-maskable-512.png'
 ];

@@ -56,7 +56,7 @@
       const response = await fetch('/api/push/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session.access_token}` },
-        body: JSON.stringify({ title: form.elements.title.value, body: form.elements.body.value, url: form.elements.url.value })
+        body: JSON.stringify({ title: form.elements.title.value, body: form.elements.body.value, url: form.elements.url.value, topic: form.elements.topic.value })
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error === 'push_not_configured' ? 'إعداد مفاتيح الإشعارات غير مكتمل في Vercel.' : result.error === 'super_admin_required' ? 'الحساب لا يملك صلاحية مدير النظام.' : 'تعذر إرسال التنبيه.');
