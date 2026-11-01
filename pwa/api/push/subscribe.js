@@ -1,5 +1,5 @@
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function validOrigin(req) {
   const allowed = String(process.env.PWA_ALLOWED_ORIGIN || '').replace(/\/$/, '');
@@ -7,7 +7,9 @@ function validOrigin(req) {
 }
 
 function supabaseHeaders() {
-  return { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
+  const headers = { apikey: SERVICE_KEY, 'Content-Type': 'application/json' };
+  if (SERVICE_KEY.startsWith('eyJ')) headers.Authorization = `Bearer ${SERVICE_KEY}`;
+  return headers;
 }
 
 module.exports = async function handler(req, res) {

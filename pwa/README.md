@@ -8,8 +8,8 @@
 2. من إعدادات المشروع اختاري **Root Directory: `pwa`**. اتركي إعدادات البناء الافتراضية؛ يعتمد التطبيق على صفحات ثابتة وVercel Functions.
 3. أضيفي متغيرات البيئة التالية إلى مشروع PWA:
    - `SUPABASE_URL`
-   - `SUPABASE_ANON_KEY`
-   - `SUPABASE_SERVICE_ROLE_KEY` — سرّي للخادم فقط.
+   - `SUPABASE_PUBLISHABLE_KEY` — المفتاح العام الذي يبدأ بـ `sb_publishable_`.
+   - `SUPABASE_SECRET_KEY` — المفتاح السري الذي يبدأ بـ `sb_secret_`، للخادم فقط.
    - `VAPID_PUBLIC_KEY`
    - `VAPID_PRIVATE_KEY` — سرّي للخادم فقط.
    - `VAPID_SUBJECT` — مثل `mailto:info@alrkayzb2.com`.
