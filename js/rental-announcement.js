@@ -18,7 +18,7 @@
             <span class="rental-announcement-badge"><span aria-hidden="true">✦</span> خدمة جديدة</span>
             <h2 id="rentalAnnouncementTitle">خدمة التأجير الشهري متاحة الآن</h2>
             <p>نوفر لك عمالة منزلية بنظام الإيجار الشهري بعقود نظامية معتمدة، راحة ومرونة والتزام كامل بالأنظمة.</p>
-            <a class="btn btn-primary rounded-pill px-4" href="https://alrkayzb2.com/%d8%b7%d9%84%d8%a8%d8%a7%d8%aa-%d8%a7%d9%84%d8%aa%d8%a3%d8%ac%d9%8a%d8%b1/" target="_blank" rel="noopener">استكشف باقات التأجير <span aria-hidden="true">←</span></a>
+            <a class="btn btn-primary rounded-pill px-4" href="rental.html">استكشف باقات التأجير <span aria-hidden="true">←</span></a>
           </div>
         </div>
       </div>
