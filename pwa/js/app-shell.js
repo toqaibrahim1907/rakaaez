@@ -58,8 +58,8 @@
     let videoUrl = '';
     if (client) {
       try {
-        const { data, error } = await client.from('site_content').select('images,published').eq('id', 1).maybeSingle();
-        const candidate = data?.published && !error ? data.images?.video : '';
+        const { data, error } = await client.from('site_content').select('images,draft,published').eq('id', 1).maybeSingle();
+        const candidate = data?.published && !error ? (data.images?.video || data.draft?.images?.video) : '';
         if (typeof candidate === 'string' && /^https:\/\//i.test(candidate)) videoUrl = candidate;
       } catch {}
     }
@@ -114,7 +114,11 @@
       backdrop.hidden = false;
       document.body.classList.add('has-rental-promo');
       dialog.focus({ preventScroll: true });
-      promoVideo.play().catch(() => {});
+      promoVideo.play().catch(() => {
+        // Browsers can block audible autoplay; retry muted so the video still appears.
+        promoVideo.muted = true;
+        promoVideo.play().catch(() => {});
+      });
     }, 1650);
   }
 
