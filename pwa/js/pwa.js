@@ -10,13 +10,14 @@
 
   const root = document.createElement('div');
   const fallbackActions = appMode ? '' : `<div class="pwa-actions" aria-label="الركائز البشرية للاستقدام"><button type="button" class="pwa-action" data-pwa-install><span aria-hidden="true">⌂</span><span>تثبيت التطبيق</span></button><button type="button" class="pwa-action pwa-action-secondary" data-pwa-push><span aria-hidden="true">تنبيهات</span><span>تفعيل التنبيهات</span></button></div>`;
-  root.innerHTML = `${fallbackActions}
+  const appInstallAction = appMode ? `<button type="button" class="pwa-install-fab" data-pwa-install aria-label="تثبيت تطبيق الركائز البشرية للاستقدام"><span class="pwa-install-fab-icon" aria-hidden="true">＋</span><span>تثبيت التطبيق</span></button>` : '';
+  root.innerHTML = `${fallbackActions}${appInstallAction}
     <div class="pwa-toast" role="status" aria-live="polite" hidden></div>
     <div class="pwa-dialog-backdrop" data-pwa-dialog hidden><section class="pwa-dialog" role="dialog" aria-modal="true" aria-labelledby="pwa-dialog-title"><span class="pwa-dialog-mark" aria-hidden="true">⌂</span><h2 id="pwa-dialog-title">ثبتي تطبيق الركائز البشرية للاستقدام</h2><p data-pwa-dialog-copy>أضيفي التطبيق إلى الشاشة الرئيسية لفتح خدماتنا بسرعة.</p><ol data-pwa-ios-steps hidden><li>اضغطي زر المشاركة في المتصفح.</li><li>اختاري «إضافة إلى الشاشة الرئيسية».</li><li>اضغطي «إضافة».</li></ol><div class="pwa-dialog-actions"><button type="button" data-pwa-close>حسنًا</button><button type="button" data-pwa-dismiss>لاحقًا</button></div></section></div>
     <div class="pwa-optin-backdrop" data-push-optin hidden><section class="pwa-optin-card" role="dialog" aria-modal="true" aria-labelledby="push-optin-title"><span class="pwa-optin-mark" aria-hidden="true">✦</span><p class="pwa-optin-kicker">خلّيك قريبة من كل جديد</p><h2 id="push-optin-title">رسائل تهمّك من الركائز البشرية للاستقدام</h2><p>فعّلي التنبيهات عشان يوصلك جديد العاملات وباقات التأجير ورسائل خفيفة على مدار اليوم.</p><button type="button" class="pwa-optin-accept" data-pwa-push>فعّلي التنبيهات <span aria-hidden="true">←</span></button><button type="button" class="pwa-optin-later" data-push-dismiss>مو الحين</button></section></div>`;
   document.body.append(root);
 
-  const installButton = document.querySelector('[data-pwa-install]');
+  const installButtons = [...document.querySelectorAll('[data-pwa-install]')];
   const pushButtons = [...document.querySelectorAll('[data-pwa-push]')];
   const disableButton = document.querySelector('[data-pwa-disable]');
   const backdrop = root.querySelector('[data-pwa-dialog]');
@@ -41,7 +42,7 @@
     root.querySelector('[data-pwa-ios-steps]').hidden = !iOS;
     backdrop.hidden = false;
   };
-  const updateInstallButton = () => { if (installButton) installButton.hidden = standalone() };
+  const updateInstallButton = () => { installButtons.forEach(button => { button.hidden = standalone() }) };
   updateInstallButton();
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; updateInstallButton() });
   window.addEventListener('appinstalled', async () => {
@@ -50,14 +51,14 @@
     showToast('تم تثبيت تطبيق الركائز البشرية للاستقدام بنجاح.');
     try { const ready = await navigator.serviceWorker.ready; await scheduleWelcome(await ready.pushManager.getSubscription(), true) } catch {}
   });
-  installButton?.addEventListener('click', async () => {
+  installButtons.forEach(installButton => installButton.addEventListener('click', async () => {
     if (!installPrompt) { showInstallHelp(); return }
     installPrompt.prompt();
     const choice = await installPrompt.userChoice;
     if (choice.outcome === 'accepted') showToast('جاري تثبيت تطبيق الركائز البشرية للاستقدام.');
     installPrompt = null;
     updateInstallButton();
-  });
+  }));
   root.querySelectorAll('[data-pwa-close],[data-pwa-dismiss]').forEach(button => button.addEventListener('click', () => { backdrop.hidden = true }));
   backdrop.addEventListener('click', event => { if (event.target === backdrop) backdrop.hidden = true });
   root.querySelector('[data-push-dismiss]').addEventListener('click', () => {
