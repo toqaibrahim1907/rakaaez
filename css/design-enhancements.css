@@ -89,3 +89,6 @@ body{overflow-x:hidden}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .reveal-section{opacity:1;transform:none}
 }
+.nav-link-has-badge{display:inline-flex!important;align-items:center;gap:6px;white-space:nowrap}
+.nav-new-badge{display:inline-flex;align-items:center;justify-content:center;padding:1px 8px;border:1px solid rgba(7,134,207,.2);border-radius:999px;background:linear-gradient(135deg,#e8f7fd,#fff);color:#087dbd;font-size:.58rem;font-weight:800;line-height:1.6;letter-spacing:0}
+@media(min-width:992px) and (max-width:1199.98px){.site-header .nav-link{padding-inline:.42rem!important;font-size:.81rem}.site-header .navbar-brand{min-width:165px}.site-header .navbar-collapse>.btn-primary{padding-inline:.85rem!important}}
