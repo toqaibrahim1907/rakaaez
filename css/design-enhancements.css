@@ -72,6 +72,17 @@ body{overflow-x:hidden}
 .home-map-block .contact-map-frame iframe{height:420px}
 @media(max-width:991px){.google-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:575px){.google-review-grid{grid-template-columns:minmax(0,1fr);gap:14px}.google-review-card{min-height:0;padding:20px}.google-review-card p{-webkit-line-clamp:7}.home-map-block{margin-top:34px;padding-top:30px}.home-map-block .contact-map-frame iframe{height:340px}}
+.rental-announcement-modal .modal-dialog{max-width:860px;margin:18px auto}
+.rental-announcement-modal .modal-content{position:relative;overflow:hidden;border:0;border-radius:26px;background:#fff;box-shadow:0 28px 90px rgba(8,35,55,.3)}
+.rental-announcement-close{position:absolute;z-index:3;top:14px;left:14px;padding:10px;border-radius:50%;background-color:rgba(255,255,255,.94);opacity:1}
+.rental-announcement-image-wrap{min-height:430px;background:#eaf3fa}
+.rental-announcement-image{display:block;width:100%;height:100%;min-height:430px;object-fit:cover;object-position:68% center}
+.rental-announcement-copy{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:clamp(28px,5vw,54px);text-align:right}
+.rental-announcement-badge{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;padding:6px 12px;border:1px solid #bfe6f6;border-radius:999px;background:#eefaff;color:#087dbd;font-size:.78rem;font-weight:800}
+.rental-announcement-copy h2{margin:0 0 14px;color:#123954;font-size:clamp(1.45rem,3vw,2rem);font-weight:800;line-height:1.5}
+.rental-announcement-copy p{margin:0 0 24px;color:#526b7d;font-size:.96rem;line-height:2}
+.rental-announcement-copy .btn{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;padding-block:12px;font-weight:800}
+@media(max-width:767px){.rental-announcement-modal .modal-dialog{margin:12px}.rental-announcement-modal .modal-content{border-radius:22px}.rental-announcement-image-wrap{min-height:190px;max-height:220px}.rental-announcement-image{min-height:190px;max-height:220px;object-position:68% 43%}.rental-announcement-copy{padding:22px 21px 24px}.rental-announcement-copy h2{font-size:1.35rem}.rental-announcement-copy p{margin-bottom:18px;font-size:.88rem}.rental-announcement-copy .btn{align-self:stretch;justify-content:center}}
 @keyframes rise-in{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
 @keyframes hero-image-drift{from{transform:scale(1)}to{transform:scale(1.045)}}
 @keyframes hero-orbit{to{transform:rotate(360deg)}}
