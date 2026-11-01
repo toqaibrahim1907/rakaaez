@@ -42,7 +42,7 @@ module.exports = async function handler(req, res) {
     await Promise.all(subscriptions.map(async subscription => {
       try {
         const payload = JSON.stringify({
-          title: 'الركائز البشرية للاستقدام',
+          title: 'يا هلا فيك 💙',
           body: 'يا هلا فيك! سعدنا بانضمامك لتطبيقنا 💙 تصفّحي العاملات المتاحات وباقات التأجير، وفريقنا معك إذا احتجتِ.',
           url: '/index.html?view=home',
           tag: 'rakaez-welcome',

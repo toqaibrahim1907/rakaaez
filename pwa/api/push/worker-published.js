@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
     const body = nationality
       ? `تصفّحي عاملة ${profession} من ${nationality} المتاحة الآن، وشوفي تفاصيلها بالتطبيق.`
       : `تصفّحي ملف ${profession} الجديد وشوفي تفاصيله في التطبيق.`;
-    const payload = JSON.stringify({ title: 'الركائز البشرية للاستقدام', body: `عاملة جديدة متاحة — ${body}`, url: `/index.html?view=workers&ref=${encodeURIComponent(worker.ref)}`, tag: `worker-${worker.ref}` });
+    const payload = JSON.stringify({ title: 'عاملة جديدة متاحة', body, url: `/index.html?view=workers&ref=${encodeURIComponent(worker.ref)}`, tag: `worker-${worker.ref}` });
     let sent = 0, failed = 0;
     await Promise.all(subscriptions.map(async subscription => {
       try {

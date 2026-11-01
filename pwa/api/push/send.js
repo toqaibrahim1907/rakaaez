@@ -1,4 +1,5 @@
 const webpush = require('web-push');
+const crypto = require('node:crypto');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ANON_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_ANON_KEY;
@@ -38,7 +39,8 @@ module.exports = async function handler(req, res) {
     const list = await fetch(`${SUPABASE_URL}/rest/v1/pwa_push_subscriptions?select=endpoint,p256dh,auth${topicFilter}`, { headers: adminHeaders() });
     if (!list.ok) return res.status(502).json({ error: 'subscription_list_failed' });
     const subscriptions = await list.json();
-    const payload = JSON.stringify({ title, body, url: target, tag: `rakaez-${Date.now()}` });
+    const tagId = crypto.createHash('sha256').update(`${title}\n${body}\n${target}`).digest('hex').slice(0, 20);
+    const payload = JSON.stringify({ title, body, url: target, tag: `rakaez-admin-${tagId}` });
     let sent = 0, failed = 0;
     await Promise.all(subscriptions.map(async row => {
       try {

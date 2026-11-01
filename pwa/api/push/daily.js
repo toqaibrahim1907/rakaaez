@@ -3,8 +3,6 @@ const webpush = require('web-push');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-const COMPANY = 'الركائز البشرية للاستقدام';
-
 function adminHeaders(prefer) {
   const headers = { apikey: SERVICE_KEY, 'Content-Type': 'application/json' };
   if (SERVICE_KEY?.startsWith('eyJ')) headers.Authorization = `Bearer ${SERVICE_KEY}`;
@@ -86,7 +84,7 @@ module.exports = async function handler(req, res) {
     const subscriptions = await subscriptionResult.json();
     const weekday = new Date(`${date}T12:00:00.000Z`).getUTCDay();
     const [title, body] = messages[slot][weekday];
-    const payload = JSON.stringify({ title: COMPANY, body: `${title} — ${body}`, url: destinations[slot], tag: `daily-${date}-${slot}`, lang: 'ar', dir: 'rtl' });
+    const payload = JSON.stringify({ title, body, url: destinations[slot], tag: `daily-${date}-${slot}`, lang: 'ar', dir: 'rtl' });
     let sent = 0, failed = 0;
     await Promise.all(subscriptions.map(async subscription => {
       try {

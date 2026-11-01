@@ -27,7 +27,7 @@
         <div class="notify-user"><span id="notifyUserName"></span><button type="button" id="notifyLogout">تسجيل الخروج</button></div>
         <form id="notifyForm" class="notify-form">
           <label>فئة التنبيه<select name="topic"><option value="all">كل المشتركين الذين اختاروا تنبيهات</option><option value="workers">العاملات الجديدة</option><option value="rental">عروض وخدمات التأجير</option></select></label>
-          <label>عنوان التنبيه<input name="title" maxlength="80" value="الركائز البشرية للاستقدام" required></label>
+          <label>عنوان مختصر للتنبيه<input name="title" maxlength="80" value="تحديث جديد" placeholder="مثال: باقات التأجير متاحة الآن" required><small>يظهر اسم التطبيق تلقائيًا على أجهزة iPhone، لذلك اتركي اسم الشركة خارج العنوان.</small></label>
           <label>نص التنبيه<textarea name="body" maxlength="240" rows="4" placeholder="اكتبي رسالة قصيرة وواضحة" required></textarea><small>حتى 240 حرفًا</small></label>
           <label>الصفحة عند فتح التنبيه<select name="url"><option value="/index.html?view=home">الرئيسية</option><option value="/index.html?view=rental">خدمة التأجير</option><option value="/index.html?view=recruitment">خدمة الاستقدام</option><option value="/index.html?view=request">طلب خدمة</option><option value="/index.html?view=workers">العاملات المتاحات</option></select></label>
           <button class="notify-primary" type="submit">إرسال التنبيه للمشتركين</button>
