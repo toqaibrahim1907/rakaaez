@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102f4d">
-  <title>إرسال التنبيهات | الركائز البشرية</title>
+  <title>إرسال التنبيهات | الركائز البشرية للاستقدام</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/css/styles.css">
   <link rel="stylesheet" href="/css/theme-palettes.css">
@@ -16,8 +16,8 @@
   <main class="notify-wrap">
     <a class="notify-back" href="/index.html">← العودة إلى التطبيق</a>
     <section class="notify-card">
-      <div class="notify-brand"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز البشرية</strong><small>إدارة تنبيهات التطبيق</small></span></div>
-      <div class="notify-intro"><span class="notify-kicker">رسائل التطبيق</span><h1>أرسلي تحديثًا للمشتركين</h1><p>تصل الرسالة إلى الأجهزة التي وافقت على التنبيهات وثبّتت التطبيق.</p></div>
+      <div class="notify-brand"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز البشرية للاستقدام</strong><small>إدارة تنبيهات التطبيق</small></span></div>
+      <div class="notify-intro"><span class="notify-kicker">رسائل التطبيق</span><h1>أرسلي تحديثًا للمشتركين</h1><p>تصل الرسالة إلى الأجهزة التي وافقت على التنبيهات وثبّتت التطبيق. ويرسل التطبيق رسائل سعودية جاهزة يوميًا الساعة 10 صباحًا و3 عصرًا و8 مساءً بتوقيت السعودية.</p></div>
       <form id="notifyLogin" class="notify-form">
         <label>البريد الإلكتروني<input name="email" type="email" autocomplete="username" required></label>
         <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
@@ -27,7 +27,7 @@
         <div class="notify-user"><span id="notifyUserName"></span><button type="button" id="notifyLogout">تسجيل الخروج</button></div>
         <form id="notifyForm" class="notify-form">
           <label>فئة التنبيه<select name="topic"><option value="all">كل المشتركين الذين اختاروا تنبيهات</option><option value="workers">العاملات الجديدة</option><option value="rental">عروض وخدمات التأجير</option></select></label>
-          <label>عنوان التنبيه<input name="title" maxlength="80" value="تحديث من الركائز البشرية" required></label>
+          <label>عنوان التنبيه<input name="title" maxlength="80" value="الركائز البشرية للاستقدام" required></label>
           <label>نص التنبيه<textarea name="body" maxlength="240" rows="4" placeholder="اكتبي رسالة قصيرة وواضحة" required></textarea><small>حتى 240 حرفًا</small></label>
           <label>الصفحة عند فتح التنبيه<select name="url"><option value="/index.html?view=home">الرئيسية</option><option value="/index.html?view=rental">خدمة التأجير</option><option value="/index.html?view=recruitment">خدمة الاستقدام</option><option value="/index.html?view=request">طلب خدمة</option><option value="/index.html?view=workers">العاملات المتاحات</option></select></label>
           <button class="notify-primary" type="submit">إرسال التنبيه للمشتركين</button>

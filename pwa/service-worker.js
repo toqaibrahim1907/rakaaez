@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'rakaez-pwa-v2';
+const CACHE_VERSION = 'rakaez-pwa-v3';
 const APP_SHELL = [
   '/index.html', '/about.html', '/contact.html', '/services.html', '/rental.html',
   '/recruitment.html', '/workers.html', '/request.html', '/offline.html',
@@ -45,9 +45,9 @@ self.addEventListener('fetch', event => {
 self.addEventListener('push', event => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {} } catch { payload = { body: event.data?.text() || '' } }
-  const title = String(payload.title || 'الركائز البشرية').slice(0, 80);
+  const title = String(payload.title || 'الركائز البشرية للاستقدام').slice(0, 80);
   const options = {
-    body: String(payload.body || 'لديك تحديث جديد من الركائز البشرية.').slice(0, 240),
+    body: String(payload.body || 'لديك تحديث جديد من الركائز البشرية للاستقدام.').slice(0, 240),
     icon: '/assets/images/pwa-192.png',
     badge: '/assets/images/pwa-192.png',
     dir: 'rtl',

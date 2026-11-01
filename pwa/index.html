@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#102f4d">
-  <meta name="description" content="تطبيق الركائز البشرية لخدمات الاستقدام والتأجير المنزلي.">
+  <meta name="description" content="تطبيق الركائز البشرية للاستقدام لخدمات الاستقدام والتأجير المنزلي.">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="الركائز">
-  <title>الركائز | تطبيق الخدمات المنزلية</title>
+  <meta name="apple-mobile-web-app-title" content="الركائز البشرية للاستقدام">
+  <title>الركائز البشرية للاستقدام</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/assets/images/pwa-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,12 +19,11 @@
 </head>
 <body class="pwa-app-shell">
   <header class="app-topbar">
-    <a class="app-brand" href="#home" aria-label="الركائز — الرئيسية"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز</strong><small>خدمات البيت أقرب لك</small></span></a>
-    <button class="app-top-action" type="button" data-open-view="account" aria-label="التنبيهات والإعدادات"><span aria-hidden="true">🔔</span><i class="app-notify-dot"></i></button>
+    <a class="app-brand" href="#home" aria-label="الركائز البشرية للاستقدام — الرئيسية"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز البشرية للاستقدام</strong><small>خدمات البيت أقرب لك</small></span></a>
   </header>
   <main id="appMain" class="app-main">
     <section class="app-view is-active" data-app-view="home" aria-labelledby="homeTitle">
-      <div class="home-welcome"><span class="app-overline"><i></i> أهلاً بك في الركائز</span><h1 id="homeTitle">راحة بيتك،<br><em>على طريقتك.</em></h1><p>اختاري الخدمة المناسبة لأسرتك، وفريقنا يتابع معك كل خطوة.</p><div class="welcome-actions"><button type="button" class="app-primary-btn" data-open-view="rental">اكتشفي التأجير <span>←</span></button><button type="button" class="welcome-icon-btn" data-open-view="workers" aria-label="تصفحي العاملات">⌕</button></div><div class="welcome-art" aria-hidden="true"><img src="/assets/images/pwa-512.png" alt=""></div></div>
+      <div class="home-welcome"><span class="app-overline"><i></i> أهلاً بك في الركائز البشرية للاستقدام</span><h1 id="homeTitle">راحة بيتك،<br><em>على طريقتك.</em></h1><p>اختاري الخدمة المناسبة لأسرتك، وفريقنا يتابع معك كل خطوة.</p><div class="welcome-actions"><button type="button" class="app-primary-btn" data-open-view="rental">اكتشفي التأجير <span>←</span></button><button type="button" class="welcome-icon-btn" data-open-view="workers" aria-label="تصفحي العاملات">⌕</button></div><div class="welcome-art" aria-hidden="true"><img src="/assets/images/pwa-512.png" alt=""></div></div>
       <div class="app-section-heading"><div><span class="app-overline">اختاري ما يناسبك</span><h2>خدماتنا</h2></div><button type="button" class="text-action" data-open-view="recruitment">عرض الكل</button></div>
       <div class="service-shortcuts"><button class="service-shortcut rental-shortcut" type="button" data-open-view="rental"><span class="shortcut-symbol">◷</span><span class="shortcut-copy"><strong>التأجير الشهري</strong><small>مرونة وراحة بعقد نظامي</small></span><span class="shortcut-arrow">←</span></button><button class="service-shortcut recruit-shortcut" type="button" data-open-view="recruitment"><span class="shortcut-symbol">✧</span><span class="shortcut-copy"><strong>الاستقدام</strong><small>خيارات من دول متعددة</small></span><span class="shortcut-arrow">←</span></button></div>
       <div class="app-section-heading"><div><span class="app-overline">متاحات الآن</span><h2>عاملات مرشحات لك</h2></div><button type="button" class="text-action" data-open-view="workers">عرض الكل</button></div>
@@ -75,8 +74,8 @@
     </section>
 
     <section class="app-view" data-app-view="account" aria-labelledby="accountTitle" hidden>
-      <div class="view-heading"><span class="app-overline">إعدادات التطبيق</span><h1 id="accountTitle">حسابك وتفضيلاتك</h1><p>اختاري نوع التحديثات التي تهمك، ونرسلها عند توفر جديد.</p></div>
-      <div class="settings-card"><div class="settings-card-title"><span class="settings-icon">🔔</span><div><strong>التنبيهات التي تهمك</strong><small>اختاري فئة أو أكثر</small></div></div><label class="preference-row"><span><strong>عاملة جديدة</strong><small>عند نشر عاملة متاحة جديدة</small></span><input type="checkbox" data-push-topic="workers" checked></label><label class="preference-row"><span><strong>خدمة التأجير</strong><small>عند وجود عرض أو تحديث جديد</small></span><input type="checkbox" data-push-topic="rental" checked></label><button type="button" class="app-primary-btn form-submit" data-pwa-push>تفعيل التنبيهات المحددة <span>←</span></button><button type="button" class="text-action disable-push" data-pwa-disable hidden>إيقاف التنبيهات على هذا الجهاز</button><small class="privacy-line">لا نرسل تنبيهات إلا في الفئات التي اخترتِها، ويمكن إيقافها في أي وقت.</small></div>
+      <div class="view-heading"><span class="app-overline">إعدادات التطبيق</span><h1 id="accountTitle">حسابك وتفضيلاتك</h1><p>اختاري نوع التحديثات اللي تهمك، ونرسلها لك على مدار اليوم.</p></div>
+      <div class="settings-card"><div class="settings-card-title"><div><strong>تحديثات التطبيق</strong><small>تنبيهات العاملات والتأجير والرسائل اليومية</small></div></div><label class="preference-row"><span><strong>عاملات وخيارات جديدة</strong><small>تحديثات العاملات المتاحات ورسائل الركائز</small></span><input type="checkbox" data-push-topic="workers" checked></label><label class="preference-row"><span><strong>التأجير الشهري</strong><small>باقات التأجير ونصائح اختيار الخدمة</small></span><input type="checkbox" data-push-topic="rental" checked></label><button type="button" class="app-primary-btn form-submit" data-pwa-push>فعّلي تنبيهات التطبيق <span>←</span></button><button type="button" class="text-action disable-push" data-pwa-disable hidden>إيقاف التنبيهات على هذا الجهاز</button><small class="privacy-line">فعّليها مرة واحدة، وتقدرين تغيرين اختياراتك أو توقفينها بأي وقت.</small></div>
       <div class="settings-card install-card"><div class="settings-card-title"><span class="settings-icon">⌂</span><div><strong>ثبّتي تطبيق الركائز</strong><small>افتحيه بسرعة من الشاشة الرئيسية</small></div></div><button class="app-secondary-btn" type="button" data-pwa-install>إضافة إلى الشاشة الرئيسية <span>＋</span></button></div>
       <div class="settings-card"><div class="settings-card-title"><span class="settings-icon">☎</span><div><strong>تواصلي معنا</strong><small>نحن جاهزون لمساعدتك</small></div></div><a class="settings-link" href="tel:+966920016419">+966 920 016 419 <span>اتصال</span></a><a class="settings-link" href="https://wa.me/966920016419" target="_blank" rel="noopener">واتساب خدمة العملاء <span>محادثة</span></a></div>
     </section>

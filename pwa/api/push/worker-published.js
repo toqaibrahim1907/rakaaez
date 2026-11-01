@@ -33,9 +33,9 @@ module.exports = async function handler(req, res) {
     const nationality = String(worker.nationality || '').trim();
     const profession = String(worker.profession || 'عاملة منزلية').trim();
     const body = nationality
-      ? `أضيفت عاملة ${profession} من ${nationality} إلى الملفات المتاحة. افتحي التطبيق للتفاصيل.`
-      : `أضيف ملف ${profession} جديد إلى العاملات المتاحات. افتحي التطبيق للتفاصيل.`;
-    const payload = JSON.stringify({ title: 'عاملة جديدة متاحة', body, url: `/index.html?view=workers&ref=${encodeURIComponent(worker.ref)}`, tag: `worker-${worker.ref}` });
+      ? `تصفّحي عاملة ${profession} من ${nationality} المتاحة الآن، وشوفي تفاصيلها بالتطبيق.`
+      : `تصفّحي ملف ${profession} الجديد وشوفي تفاصيله في التطبيق.`;
+    const payload = JSON.stringify({ title: 'الركائز البشرية للاستقدام', body: `عاملة جديدة متاحة — ${body}`, url: `/index.html?view=workers&ref=${encodeURIComponent(worker.ref)}`, tag: `worker-${worker.ref}` });
     let sent = 0, failed = 0;
     await Promise.all(subscriptions.map(async subscription => {
       try {

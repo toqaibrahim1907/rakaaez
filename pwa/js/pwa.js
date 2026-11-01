@@ -7,20 +7,22 @@
   let toastTimer = 0;
 
   const root = document.createElement('div');
-  const fallbackActions = appMode ? '' : `<div class="pwa-actions" aria-label="تطبيق الركائز"><button type="button" class="pwa-action" data-pwa-install><span aria-hidden="true">⌂</span><span>تثبيت التطبيق</span></button><button type="button" class="pwa-action pwa-action-secondary" data-pwa-push><span aria-hidden="true">🔔</span><span>تفعيل التنبيهات</span></button></div>`;
+  const fallbackActions = appMode ? '' : `<div class="pwa-actions" aria-label="الركائز البشرية للاستقدام"><button type="button" class="pwa-action" data-pwa-install><span aria-hidden="true">⌂</span><span>تثبيت التطبيق</span></button><button type="button" class="pwa-action pwa-action-secondary" data-pwa-push><span aria-hidden="true">تنبيهات</span><span>تفعيل التنبيهات</span></button></div>`;
   root.innerHTML = `${fallbackActions}
     <div class="pwa-toast" role="status" aria-live="polite" hidden></div>
-    <div class="pwa-dialog-backdrop" data-pwa-dialog hidden><section class="pwa-dialog" role="dialog" aria-modal="true" aria-labelledby="pwa-dialog-title"><span class="pwa-dialog-mark" aria-hidden="true">⌂</span><h2 id="pwa-dialog-title">ثبتي تطبيق الركائز</h2><p data-pwa-dialog-copy>أضيفي التطبيق إلى الشاشة الرئيسية لفتح خدمات الركائز بسرعة.</p><ol data-pwa-ios-steps hidden><li>اضغطي زر المشاركة في المتصفح.</li><li>اختاري «إضافة إلى الشاشة الرئيسية».</li><li>اضغطي «إضافة».</li></ol><div class="pwa-dialog-actions"><button type="button" data-pwa-close>حسنًا</button><button type="button" data-pwa-dismiss>لاحقًا</button></div></section></div>`;
+    <div class="pwa-dialog-backdrop" data-pwa-dialog hidden><section class="pwa-dialog" role="dialog" aria-modal="true" aria-labelledby="pwa-dialog-title"><span class="pwa-dialog-mark" aria-hidden="true">⌂</span><h2 id="pwa-dialog-title">ثبتي تطبيق الركائز البشرية للاستقدام</h2><p data-pwa-dialog-copy>أضيفي التطبيق إلى الشاشة الرئيسية لفتح خدماتنا بسرعة.</p><ol data-pwa-ios-steps hidden><li>اضغطي زر المشاركة في المتصفح.</li><li>اختاري «إضافة إلى الشاشة الرئيسية».</li><li>اضغطي «إضافة».</li></ol><div class="pwa-dialog-actions"><button type="button" data-pwa-close>حسنًا</button><button type="button" data-pwa-dismiss>لاحقًا</button></div></section></div>
+    <div class="pwa-optin-backdrop" data-push-optin hidden><section class="pwa-optin-card" role="dialog" aria-modal="true" aria-labelledby="push-optin-title"><span class="pwa-optin-mark" aria-hidden="true">✦</span><p class="pwa-optin-kicker">خلّيك قريبة من كل جديد</p><h2 id="push-optin-title">رسائل تهمّك من الركائز البشرية للاستقدام</h2><p>فعّلي التنبيهات عشان يوصلك جديد العاملات وباقات التأجير ورسائل خفيفة على مدار اليوم.</p><button type="button" class="pwa-optin-accept" data-pwa-push>فعّلي التنبيهات <span aria-hidden="true">←</span></button><button type="button" class="pwa-optin-later" data-push-dismiss>مو الحين</button></section></div>`;
   document.body.append(root);
 
   const installButton = document.querySelector('[data-pwa-install]');
-  const pushButton = document.querySelector('[data-pwa-push]');
+  const pushButtons = [...document.querySelectorAll('[data-pwa-push]')];
   const disableButton = document.querySelector('[data-pwa-disable]');
   const backdrop = root.querySelector('[data-pwa-dialog]');
+  const pushOptin = root.querySelector('[data-push-optin]');
   const toast = root.querySelector('.pwa-toast');
   const showToast = message => { toast.textContent = message; toast.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.hidden = true }, 5200) };
   const showInstallHelp = () => {
-    root.querySelector('#pwa-dialog-title').textContent = 'ثبتي تطبيق الركائز';
+    root.querySelector('#pwa-dialog-title').textContent = 'ثبتي تطبيق الركائز البشرية للاستقدام';
     root.querySelector('[data-pwa-dialog-copy]').textContent = iOS ? 'لتثبيت التطبيق على iPhone أو iPad، اتبعي الخطوات التالية:' : 'من قائمة المتصفح اختاري «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية». ';
     root.querySelector('[data-pwa-ios-steps]').hidden = !iOS;
     backdrop.hidden = false;
@@ -28,17 +30,21 @@
   const updateInstallButton = () => { if (installButton) installButton.hidden = standalone() };
   updateInstallButton();
   window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; updateInstallButton() });
-  window.addEventListener('appinstalled', () => { installPrompt = null; updateInstallButton(); showToast('تم تثبيت تطبيق الركائز بنجاح.') });
+  window.addEventListener('appinstalled', () => { installPrompt = null; updateInstallButton(); showToast('تم تثبيت تطبيق الركائز البشرية للاستقدام بنجاح.') });
   installButton?.addEventListener('click', async () => {
     if (!installPrompt) { showInstallHelp(); return }
     installPrompt.prompt();
     const choice = await installPrompt.userChoice;
-    if (choice.outcome === 'accepted') showToast('جاري تثبيت تطبيق الركائز.');
+    if (choice.outcome === 'accepted') showToast('جاري تثبيت تطبيق الركائز البشرية للاستقدام.');
     installPrompt = null;
     updateInstallButton();
   });
   root.querySelectorAll('[data-pwa-close],[data-pwa-dismiss]').forEach(button => button.addEventListener('click', () => { backdrop.hidden = true }));
   backdrop.addEventListener('click', event => { if (event.target === backdrop) backdrop.hidden = true });
+  root.querySelector('[data-push-dismiss]').addEventListener('click', () => {
+    pushOptin.hidden = true;
+    try { localStorage.setItem('rakaez-pwa-push-dismissed', '1') } catch {}
+  });
 
   const preferenceKey = 'rakaez-pwa-push-topics';
   const selectedTopics = () => {
@@ -67,19 +73,26 @@
     return Uint8Array.from(raw, char => char.charCodeAt(0));
   };
   async function updatePushButton() {
-    if (!pushButton) return;
-    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) { pushButton.hidden = true; return }
-    if (Notification.permission === 'denied') { if (appMode) pushButton.textContent = 'التنبيهات محظورة من المتصفح'; else if (pushButton.querySelector('span:last-child')) pushButton.querySelector('span:last-child').textContent = 'التنبيهات محظورة'; pushButton.disabled = true; return }
+    if (!pushButtons.length) return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) { pushButtons.forEach(button => { button.hidden = true }); return }
+    if (Notification.permission === 'denied') {
+      pushButtons.forEach(button => { button.disabled = true; if (button.classList.contains('pwa-optin-accept')) button.textContent = 'فعّليها من إعدادات المتصفح'; else if (appMode) button.textContent = 'التنبيهات محظورة من المتصفح'; else if (button.querySelector('span:last-child')) button.querySelector('span:last-child').textContent = 'التنبيهات محظورة' });
+      pushOptin.hidden = true;
+      return;
+    }
     const subscription = registration && await registration.pushManager.getSubscription();
-    const label = subscription ? 'حفظ اختيارات التنبيه' : 'تفعيل التنبيهات المحددة';
-    if (appMode) pushButton.innerHTML = `${label} <span aria-hidden="true">←</span>`;
-    else { const text = pushButton.querySelector('span:last-child'); if (text) text.textContent = subscription ? 'حفظ اختيارات التنبيه' : 'تفعيل التنبيهات' }
+    const label = subscription ? 'حفظ تفضيلاتك' : 'فعّلي التنبيهات';
+    pushButtons.forEach(button => {
+      if (button.classList.contains('pwa-optin-accept')) return;
+      if (appMode) button.innerHTML = `${label} <span aria-hidden="true">←</span>`;
+      else { const text = button.querySelector('span:last-child'); if (text) text.textContent = subscription ? 'حفظ تفضيلات التنبيه' : 'تفعيل التنبيهات' }
+    });
     if (disableButton) disableButton.hidden = !subscription;
   }
-  async function savePreferences(subscription) {
+  async function savePreferences(subscription, { notify = true } = {}) {
     const response = await fetch('/api/push/subscribe', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint, topics: selectedTopics() }) });
     if (!response.ok) throw new Error('تعذر حفظ اختيارات التنبيه.');
-    showToast('تم حفظ تفضيلات التنبيه على هذا الجهاز.');
+    if (notify) showToast('تم حفظ تفضيلات التنبيه على هذا الجهاز.');
   }
   async function enableOrSavePush() {
     if (!registration) throw new Error('التطبيق غير جاهز بعد. أعيدي تحميل الصفحة وحاولي مجددًا.');
@@ -89,7 +102,7 @@
     const current = await registration.pushManager.getSubscription();
     if (current) { await savePreferences(current); await updatePushButton(); return }
     if (iOS && !standalone()) { showInstallHelp(); showToast('ثبتي التطبيق أولًا على الشاشة الرئيسية ثم فعّلي التنبيهات.'); return }
-    const permission = await Notification.requestPermission();
+    const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
     if (permission !== 'granted') { showToast('لم يتم السماح بإرسال التنبيهات. يمكنك تفعيلها من إعدادات المتصفح.'); await updatePushButton(); return }
     const keyResponse = await fetch('/api/push/key', { cache: 'no-store' });
     if (!keyResponse.ok) throw new Error('إعداد التنبيهات غير مكتمل على الخادم.');
@@ -97,14 +110,16 @@
     const subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeKey(publicKey) });
     const response = await fetch('/api/push/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription, topics }) });
     if (!response.ok) { await subscription.unsubscribe(); throw new Error('تعذر حفظ اشتراك التنبيهات.'); }
-    showToast('تم تفعيل التنبيهات حسب اختياراتك.');
+    pushOptin.hidden = true;
+    try { localStorage.setItem('rakaez-pwa-push-dismissed', '1') } catch {}
+    showToast('تم تفعيل تنبيهات الركائز البشرية للاستقدام.');
     await updatePushButton();
   }
-  pushButton?.addEventListener('click', async () => {
-    pushButton.disabled = true;
+  pushButtons.forEach(pushButton => pushButton.addEventListener('click', async () => {
+    pushButtons.forEach(button => { button.disabled = true });
     try { await enableOrSavePush() } catch (error) { console.error('PWA push setup failed:', error?.message || error); showToast(error.message || 'تعذر تفعيل التنبيهات الآن.') }
-    finally { pushButton.disabled = false }
-  });
+    finally { pushButtons.forEach(button => { button.disabled = false }) }
+  }));
   disableButton?.addEventListener('click', async () => {
     disableButton.disabled = true;
     try {
@@ -114,7 +129,7 @@
       if (!response.ok) throw new Error('تعذر إيقاف التنبيهات.');
       await subscription.unsubscribe();
       try { localStorage.removeItem(preferenceKey) } catch {}
-      showToast('تم إيقاف تنبيهات الركائز على هذا الجهاز.');
+      showToast('تم إيقاف تنبيهات الركائز البشرية للاستقدام على هذا الجهاز.');
       await updatePushButton();
     } catch (error) { showToast(error.message || 'تعذر إيقاف التنبيهات.') }
     finally { disableButton.disabled = false }
@@ -122,7 +137,20 @@
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-      .then(value => { registration = value; return updatePushButton() })
-      .catch(error => { console.error('PWA service worker registration failed:', error); if (pushButton) pushButton.hidden = true });
-  } else if (pushButton) pushButton.hidden = true;
+      .then(async value => {
+        registration = value;
+        await updatePushButton();
+        if (!appMode || !('Notification' in window) || !('PushManager' in window)) return;
+        if (Notification.permission === 'granted') {
+          try {
+            const current = await registration.pushManager.getSubscription();
+            if (current) await savePreferences(current, { notify: false });
+            else await enableOrSavePush();
+          } catch (error) { console.warn('Automatic push resume failed:', error?.message || error) }
+          return;
+        }
+        if (Notification.permission === 'default' && !localStorage.getItem('rakaez-pwa-push-dismissed')) setTimeout(() => { pushOptin.hidden = false }, 1400);
+      })
+      .catch(error => { console.error('PWA service worker registration failed:', error); pushButtons.forEach(button => { button.hidden = true }) });
+  } else pushButtons.forEach(button => { button.hidden = true });
 })();
