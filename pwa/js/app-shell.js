@@ -50,6 +50,84 @@
     toastTimer = setTimeout(() => { toast.hidden = true }, 4200);
   }
 
+  async function showRentalAnnouncement() {
+    try {
+      if (sessionStorage.getItem('pwaRentalAnnouncementSeen') === '1') return;
+    } catch {}
+
+    let videoUrl = '';
+    if (client) {
+      try {
+        const { data, error } = await client.from('site_content').select('images,published').eq('id', 1).maybeSingle();
+        const candidate = data?.published && !error ? data.images?.video : '';
+        if (typeof candidate === 'string' && /^https:\/\//i.test(candidate)) videoUrl = candidate;
+      } catch {}
+    }
+
+    if (document.querySelector('.rental-promo-backdrop')) return;
+    const backdrop = document.createElement('div');
+    backdrop.className = 'rental-promo-backdrop';
+    backdrop.hidden = true;
+    backdrop.innerHTML = `
+      <section class="rental-promo-dialog" role="dialog" aria-modal="true" aria-labelledby="rentalPromoTitle" aria-describedby="rentalPromoDescription" tabindex="-1">
+        <button class="rental-promo-close" type="button" aria-label="إغلاق الإعلان">×</button>
+        <div class="rental-promo-media"></div>
+        <div class="rental-promo-copy" dir="rtl">
+          <span class="rental-promo-badge"><i aria-hidden="true"></i> خدمة جديدة</span>
+          <h2 id="rentalPromoTitle">التأجير الشهري صار أسهل</h2>
+          <p id="rentalPromoDescription">نوفر لك عمالة منزلية بنظام الإيجار الشهري بعقود نظامية معتمدة، راحة ومرونة والتزام كامل بالأنظمة.</p>
+          <button class="rental-promo-cta" type="button" data-open-view="rental">استكشف باقات التأجير <span aria-hidden="true">←</span></button>
+        </div>
+      </section>`;
+    document.body.append(backdrop);
+
+    const media = backdrop.querySelector('.rental-promo-media');
+    const poster = '/assets/images/home-promo-rental.jpg';
+    if (videoUrl) {
+      const video = document.createElement('video');
+      video.className = 'rental-promo-video';
+      video.src = videoUrl;
+      video.poster = poster;
+      video.autoplay = true;
+      video.muted = true;
+      video.loop = true;
+      video.controls = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      video.setAttribute('aria-label', 'فيديو خدمة التأجير الشهري');
+      media.append(video);
+      video.play().catch(() => {});
+    } else {
+      const image = document.createElement('img');
+      image.className = 'rental-promo-video';
+      image.src = poster;
+      image.alt = 'خدمة التأجير الشهري في منزل عائلي';
+      media.append(image);
+    }
+
+    const dialog = backdrop.querySelector('.rental-promo-dialog');
+    const close = () => {
+      backdrop.hidden = true;
+      document.body.classList.remove('has-rental-promo');
+      backdrop.querySelector('video')?.pause();
+    };
+    backdrop.querySelector('.rental-promo-close').addEventListener('click', close);
+    backdrop.querySelector('.rental-promo-cta').addEventListener('click', close);
+    backdrop.addEventListener('click', event => { if (event.target === backdrop) close() });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && !backdrop.hidden) close() });
+
+    if (targetView() !== 'home') return;
+    setTimeout(() => {
+      try {
+        if (sessionStorage.getItem('pwaRentalAnnouncementSeen') === '1') return;
+        sessionStorage.setItem('pwaRentalAnnouncementSeen', '1');
+      } catch {}
+      backdrop.hidden = false;
+      document.body.classList.add('has-rental-promo');
+      dialog.focus({ preventScroll: true });
+    }, 1650);
+  }
+
   function openView(name, { updateUrl = true } = {}) {
     const target = viewNames.includes(name) ? name : 'home';
     views.forEach(view => {
@@ -218,4 +296,5 @@
   openView(initialView, { updateUrl: false });
   applyPublishedTheme();
   loadWorkers();
+  showRentalAnnouncement();
 })();
