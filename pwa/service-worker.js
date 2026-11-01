@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'rakaez-pwa-v7';
+const CACHE_VERSION = 'rakaez-pwa-v8';
 const APP_SHELL = [
   '/index.html', '/about.html', '/contact.html', '/services.html', '/rental.html',
   '/recruitment.html', '/workers.html', '/request.html', '/offline.html',

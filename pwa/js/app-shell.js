@@ -64,18 +64,19 @@
       } catch {}
     }
 
-    if (document.querySelector('.rental-promo-backdrop')) return;
+    if (targetView() !== 'home' || document.querySelector('.rental-promo-backdrop')) return;
     const backdrop = document.createElement('div');
     backdrop.className = 'rental-promo-backdrop';
     backdrop.hidden = true;
     backdrop.innerHTML = `
       <section class="rental-promo-dialog" role="dialog" aria-modal="true" aria-labelledby="rentalPromoTitle" aria-describedby="rentalPromoDescription" tabindex="-1">
         <button class="rental-promo-close" type="button" aria-label="إغلاق الإعلان">×</button>
-        <div class="rental-promo-media"></div>
+        <div class="rental-promo-media" aria-hidden="true"></div>
         <div class="rental-promo-copy" dir="rtl">
           <span class="rental-promo-badge"><i aria-hidden="true"></i> خدمة جديدة</span>
           <h2 id="rentalPromoTitle">التأجير الشهري صار أسهل</h2>
           <p id="rentalPromoDescription">نوفر لك عمالة منزلية بنظام الإيجار الشهري بعقود نظامية معتمدة، راحة ومرونة والتزام كامل بالأنظمة.</p>
+          <button class="rental-promo-sound" type="button" aria-pressed="false" hidden>تشغيل الصوت</button>
           <button class="rental-promo-cta" type="button" data-open-view="rental">استكشف باقات التأجير <span aria-hidden="true">←</span></button>
         </div>
       </section>`;
@@ -83,20 +84,24 @@
 
     const media = backdrop.querySelector('.rental-promo-media');
     const poster = '/assets/images/home-promo-rental.jpg';
+    let promoVideo = null;
+    const soundButton = backdrop.querySelector('.rental-promo-sound');
     if (videoUrl) {
       const video = document.createElement('video');
+      promoVideo = video;
       video.className = 'rental-promo-video';
       video.src = videoUrl;
       video.poster = poster;
-      video.autoplay = true;
-      video.muted = true;
+      video.autoplay = false;
+      video.muted = false;
+      video.defaultMuted = false;
+      video.volume = 1;
       video.loop = true;
-      video.controls = true;
       video.playsInline = true;
       video.preload = 'metadata';
       video.setAttribute('aria-label', 'فيديو خدمة التأجير الشهري');
       media.append(video);
-      video.play().catch(() => {});
+      soundButton.hidden = false;
     } else {
       const image = document.createElement('img');
       image.className = 'rental-promo-video';
@@ -106,6 +111,25 @@
     }
 
     const dialog = backdrop.querySelector('.rental-promo-dialog');
+    soundButton.addEventListener('click', async () => {
+      if (!promoVideo) return;
+      if (!promoVideo.muted) {
+        promoVideo.muted = true;
+        soundButton.textContent = 'تشغيل الصوت';
+        soundButton.setAttribute('aria-pressed', 'false');
+        return;
+      }
+      promoVideo.muted = false;
+      promoVideo.volume = 1;
+      try {
+        await promoVideo.play();
+        soundButton.textContent = 'إيقاف الصوت';
+        soundButton.setAttribute('aria-pressed', 'true');
+      } catch {
+        soundButton.textContent = 'اضغطي لتشغيل الصوت';
+        soundButton.setAttribute('aria-pressed', 'false');
+      }
+    });
     const close = () => {
       backdrop.hidden = true;
       document.body.classList.remove('has-rental-promo');
@@ -116,7 +140,6 @@
     backdrop.addEventListener('click', event => { if (event.target === backdrop) close() });
     document.addEventListener('keydown', event => { if (event.key === 'Escape' && !backdrop.hidden) close() });
 
-    if (targetView() !== 'home') return;
     setTimeout(() => {
       try {
         if (sessionStorage.getItem('pwaRentalAnnouncementSeen') === '1') return;
@@ -125,6 +148,14 @@
       backdrop.hidden = false;
       document.body.classList.add('has-rental-promo');
       dialog.focus({ preventScroll: true });
+      if (promoVideo) promoVideo.play().then(() => {
+        soundButton.textContent = 'إيقاف الصوت';
+        soundButton.setAttribute('aria-pressed', 'true');
+      }).catch(() => {
+        promoVideo.muted = true;
+        soundButton.textContent = 'تشغيل الصوت';
+        soundButton.setAttribute('aria-pressed', 'false');
+      });
     }, 1650);
   }
 
