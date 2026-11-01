@@ -45,6 +45,8 @@ body{overflow-x:hidden}
 .promise-mark{animation:promise-breathe 7s ease-in-out infinite}
 .promise-mark i{animation:mark-dot 3.6s ease-in-out infinite alternate}
 .promise-mark i:nth-child(2){animation-delay:.7s}.promise-mark i:nth-child(3){animation-delay:1.4s}
+.promise-logo img{animation:promise-logo-spin 28s linear infinite;will-change:transform}
+@keyframes promise-logo-spin{to{transform:rotate(360deg)}}
 .page-hero{position:relative;overflow:hidden;isolation:isolate;background:linear-gradient(115deg,#075b91 0%,#0b679e 45%,#102f4d 100%)}
 .page-hero::after{content:"";position:absolute;z-index:-1;width:340px;height:340px;left:7%;top:-185px;border-radius:50%;border:1px solid rgba(188,229,248,.24);box-shadow:0 0 0 28px rgba(188,229,248,.035),0 0 0 58px rgba(188,229,248,.025);animation:hero-orbit 28s linear infinite}
 .page-hero .container{animation:rise-in .65s cubic-bezier(.2,.7,.25,1) both}
@@ -97,6 +99,7 @@ body{overflow-x:hidden}
   .promise-card{border-radius:24px}
 }
 @media(prefers-reduced-motion:reduce){
+  .promise-logo img{animation:none}
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .reveal-section{opacity:1;transform:none}
 }
