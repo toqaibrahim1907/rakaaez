@@ -8,6 +8,38 @@
   let workers = [];
   let toastTimer = 0;
   let focusedWorker = false;
+  const splash = document.querySelector('#appSplash');
+  if (splash) setTimeout(() => {
+    splash.classList.add('is-hidden');
+    setTimeout(() => splash.remove(), 520);
+  }, 1350);
+
+  const promoCarousel = document.querySelector('#promoCarousel');
+  const promoDots = [...document.querySelectorAll('[data-promo-dot]')];
+  let promoIndex = 0;
+  let promoScrollFrame = 0;
+  function setPromoIndex(index, scroll = true) {
+    if (!promoCarousel) return;
+    const slides = [...promoCarousel.children];
+    promoIndex = (index + slides.length) % slides.length;
+    promoDots.forEach((dot, dotIndex) => {
+      const active = dotIndex === promoIndex;
+      dot.classList.toggle('is-active', active);
+      dot.setAttribute('aria-selected', String(active));
+    });
+    if (scroll) promoCarousel.scrollTo({ left: promoIndex * promoCarousel.clientWidth, behavior: 'smooth' });
+  }
+  promoDots.forEach(dot => dot.addEventListener('click', () => setPromoIndex(Number(dot.dataset.promoDot))));
+  promoCarousel?.addEventListener('scroll', () => {
+    cancelAnimationFrame(promoScrollFrame);
+    promoScrollFrame = requestAnimationFrame(() => setPromoIndex(Math.round(promoCarousel.scrollLeft / promoCarousel.clientWidth), false));
+  }, { passive: true });
+  if (promoCarousel && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setInterval(() => {
+      const homeView = document.querySelector('[data-app-view="home"]');
+      if (document.visibilityState === 'visible' && !homeView?.hidden) setPromoIndex(promoIndex + 1);
+    }, 5600);
+  }
 
   function showToast(message) {
     const toast = document.querySelector('.app-toast');

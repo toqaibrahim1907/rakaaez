@@ -10,6 +10,8 @@
   <title>الركائز البشرية للاستقدام</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" href="/assets/images/pwa-192.png">
+  <link rel="preload" as="image" href="/assets/images/logo-mark-refined.png">
+  <link rel="preload" as="image" href="/assets/images/home-promo-recruitment.jpg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,14 +20,25 @@
   <link rel="stylesheet" href="/css/pwa.css">
 </head>
 <body class="pwa-app-shell">
+  <div class="app-splash" id="appSplash" role="status" aria-label="جاري فتح تطبيق الركائز البشرية للاستقدام">
+    <div class="app-splash-content"><span class="app-splash-logo"><img src="/assets/images/logo-mark-refined.png" alt=""></span><h1>الركائز البشرية للاستقدام</h1><p>نرتّب لك راحة بيتك</p><span class="app-splash-progress"><i></i></span></div>
+  </div>
   <header class="app-topbar">
-    <a class="app-brand" href="#home" aria-label="الركائز البشرية للاستقدام — الرئيسية"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز البشرية للاستقدام</strong><small>خدمات البيت أقرب لك</small></span></a>
+    <a class="app-brand" href="#home" data-open-view="home" aria-label="الركائز البشرية للاستقدام — الرئيسية"><img src="/assets/images/pwa-192.png" alt=""><span><strong>الركائز البشرية للاستقدام</strong><small>خدمات البيت أقرب لك</small></span></a>
   </header>
   <main id="appMain" class="app-main">
-    <section class="app-view is-active" data-app-view="home" aria-labelledby="homeTitle">
-      <div class="home-welcome"><span class="app-overline"><i></i> أهلاً بك في الركائز البشرية للاستقدام</span><h1 id="homeTitle">راحة بيتك،<br><em>على طريقتك.</em></h1><p>اختاري الخدمة المناسبة لأسرتك، وفريقنا يتابع معك كل خطوة.</p><div class="welcome-actions"><button type="button" class="app-primary-btn" data-open-view="rental">اكتشفي التأجير <span>←</span></button><button type="button" class="welcome-icon-btn" data-open-view="workers" aria-label="تصفحي العاملات">⌕</button></div><div class="welcome-art" aria-hidden="true"><img src="/assets/images/pwa-512.png" alt=""></div></div>
+    <section class="app-view is-active" id="home" data-app-view="home" aria-labelledby="homeTitle">
+      <div class="home-greeting"><span class="app-overline"><i></i> يا هلا فيك</span><h1 id="homeTitle">الركائز البشرية للاستقدام</h1><p>اختاري الخدمة اللي تناسب بيتك، والباقي علينا.</p></div>
+      <section class="promo-shell" aria-label="خدمات الركائز البشرية للاستقدام">
+        <div class="promo-carousel" id="promoCarousel" tabindex="0" aria-label="اسحبي لاستكشاف خدماتنا">
+          <article class="promo-slide"><img src="/assets/images/home-promo-recruitment.jpg" alt="أسرة سعودية تتعرف على خدمة الاستقدام" fetchpriority="high"><div class="promo-copy"><span>استقدام بخطوات واضحة</span><h2>خيارات تناسب احتياج بيتك</h2><p>تصفّحي الباقات والعاملات المتاحات.</p><button type="button" data-open-view="recruitment">استكشفي الاستقدام <b>←</b></button></div></article>
+          <article class="promo-slide"><img src="/assets/images/home-promo-workers.jpg" alt="عاملة منزلية محترفة في منزل عصري" loading="lazy"><div class="promo-copy"><span>اختاري على راحتك</span><h2>عاملات بخبرات متنوعة</h2><p>شوفي الملفات المتاحة وتفاصيلها.</p><button type="button" data-open-view="workers">شاهدي المتاحات <b>←</b></button></div></article>
+          <article class="promo-slide"><img src="/assets/images/home-promo-rental.jpg" alt="خدمة تأجير شهري في منزل سعودي" loading="lazy"><div class="promo-copy"><span>مرونة لاحتياج بيتك</span><h2>خدمة التأجير الشهري</h2><p>تعرّفي على الباقات وقدّمي طلبك.</p><button type="button" data-open-view="rental">اكتشفي التأجير <b>←</b></button></div></article>
+        </div>
+        <div class="promo-dots" role="tablist" aria-label="شرائح الخدمات"><button type="button" class="is-active" data-promo-dot="0" aria-label="الشريحة الأولى" aria-selected="true"></button><button type="button" data-promo-dot="1" aria-label="الشريحة الثانية" aria-selected="false"></button><button type="button" data-promo-dot="2" aria-label="الشريحة الثالثة" aria-selected="false"></button></div>
+      </section>
       <div class="app-section-heading"><div><span class="app-overline">اختاري ما يناسبك</span><h2>خدماتنا</h2></div><button type="button" class="text-action" data-open-view="recruitment">عرض الكل</button></div>
-      <div class="service-shortcuts"><button class="service-shortcut rental-shortcut" type="button" data-open-view="rental"><span class="shortcut-symbol">◷</span><span class="shortcut-copy"><strong>التأجير الشهري</strong><small>مرونة وراحة بعقد نظامي</small></span><span class="shortcut-arrow">←</span></button><button class="service-shortcut recruit-shortcut" type="button" data-open-view="recruitment"><span class="shortcut-symbol">✧</span><span class="shortcut-copy"><strong>الاستقدام</strong><small>خيارات من دول متعددة</small></span><span class="shortcut-arrow">←</span></button></div>
+      <div class="service-shortcuts"><button class="service-shortcut recruit-shortcut" type="button" data-open-view="recruitment"><img class="shortcut-image" src="/assets/images/home-promo-recruitment.jpg" alt="" loading="lazy"><span class="shortcut-copy"><strong>باقات الاستقدام</strong><small>خيارات من دول متعددة</small></span><span class="shortcut-arrow">←</span></button><button class="service-shortcut workers-shortcut" type="button" data-open-view="workers"><img class="shortcut-image" src="/assets/images/home-promo-workers.jpg" alt="" loading="lazy"><span class="shortcut-copy"><strong>العاملات المتاحات</strong><small>تصفّحي الملفات والخبرات</small></span><span class="shortcut-arrow">←</span></button><button class="service-shortcut rental-shortcut" type="button" data-open-view="rental"><img class="shortcut-image" src="/assets/images/home-promo-rental.jpg" alt="" loading="lazy"><span class="shortcut-copy"><strong>التأجير الشهري</strong><small>مرونة وراحة بعقد نظامي</small></span><span class="shortcut-arrow">←</span></button></div>
       <div class="app-section-heading"><div><span class="app-overline">متاحات الآن</span><h2>عاملات مرشحات لك</h2></div><button type="button" class="text-action" data-open-view="workers">عرض الكل</button></div>
       <div id="homeWorkers" class="worker-rail" aria-live="polite"><div class="app-loading"><span></span> جاري تحميل الملفات المتاحة…</div></div>
       <div class="app-help-strip"><span class="help-icon">؟</span><span><strong>تحتاجين مساعدة؟</strong><small>اسألي مساعد الركائز أو تواصلي مع الفريق</small></span><button type="button" class="help-chat-button" data-open-support-chat>محادثة</button></div>
