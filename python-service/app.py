@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 from PIL import Image
 
 from smart_cv import SmartCVParser, setup_tesseract
+from smart_cv.data_mapping import normalize_extracted_fields
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("rakaez.cv_service")
@@ -111,10 +112,22 @@ def process_pdf(raw_pdf: bytes, filename: str) -> dict[str, Any]:
         parser = SmartCVParser(output_dir=str(output_root))
         result = parser.parse(str(pdf_path), save_json=False)
 
-        fields = {key: result.get(key) for key in (
+        extracted_fields = {key: result.get(key) for key in (
             "salary", "nationality", "religion", "age", "job", "passport_number", "experience"
         )}
+        normalized = normalize_extracted_fields(extracted_fields)
+        fields = normalized["fields"]
+        raw_fields = normalized["raw_fields"]
         confidence = result.get("confidence") if isinstance(result.get("confidence"), dict) else {}
+        confidence = dict(confidence)
+        for field in normalized["unmapped_fields"]:
+            confidence[field] = 0
+        if raw_fields.get("religion") and not fields.get("religion"):
+            warnings = result.get("warnings") if isinstance(result.get("warnings"), list) else []
+            result["warnings"] = [*warnings, "لم تُوحّد الديانة بشكل واضح؛ تُركت فارغة للمراجعة."]
+        for field in ("salary", "age", "experience"):
+            if raw_fields.get(field) and fields.get(field) is None:
+                confidence[field] = 0
         photos: list[dict[str, Any]] = []
         selected_path = str(result.get("worker_photo") or "").replace("\\", "/")
         candidate_items = result.get("candidate_photos") or []
@@ -160,6 +173,7 @@ def process_pdf(raw_pdf: bytes, filename: str) -> dict[str, Any]:
 
         return {
             "fields": fields,
+            "raw_fields": raw_fields,
             "confidence": {key: float(confidence.get(key) or 0) for key in (
                 "salary", "nationality", "religion", "age", "job", "passport_number", "experience", "worker_photo"
             )},

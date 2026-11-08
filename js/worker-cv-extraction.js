@@ -19,7 +19,7 @@
   };
 
   function blankResult() {
-    return { fields: { salary: null, nationality: null, religion: null, age: null, job: null, passport_number: null, experience: null }, confidence: {}, warnings: [], photos: [], selected_photo: null };
+    return { fields: { salary: null, nationality: null, religion: null, age: null, job: null, passport_number: null, experience: null }, raw_fields: {}, confidence: {}, warnings: [], photos: [], selected_photo: null };
   }
 
   function validPdfHeader(bytes) {
@@ -107,6 +107,7 @@
         if (data.status === 'complete' && data.result) {
           Object.assign(result, {
             fields: data.result.fields || result.fields,
+            rawFields: data.result.raw_fields || {},
             confidence: data.result.confidence || {},
             warnings: Array.isArray(data.result.warnings) ? data.result.warnings : [],
             photos: Array.isArray(data.result.photos) ? data.result.photos : [],
