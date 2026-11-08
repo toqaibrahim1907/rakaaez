@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "api/chat.js": { "maxDuration": 30 },
-    "api/reviews.js": { "maxDuration": 15 }
+    "api/reviews.js": { "maxDuration": 15 },
+    "api/worker-extraction.js": { "maxDuration": 15 }
   },
   "headers": [
     { "source": "/(.*)", "headers": [

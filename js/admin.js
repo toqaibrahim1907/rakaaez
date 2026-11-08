@@ -35,7 +35,8 @@
       return next;
     } catch { return clone(seed) }
   }
-  let state = readState(); const currentUserId = currentAccess?.session?.user?.id || ''; const themeAliases = { blue: 'sky-light', navy: 'ocean-light', light: 'sky-light' }; state.cms.theme = themeAliases[state.cms.theme] || state.cms.theme || 'sky-light'; state.staffDirectory = []; if (backend?.ready) { state.workers = []; state.requests = []; state.complaints = []; state.cvRecords = []; state.cms.published = false }
+  let state = readState();
+  let activeCvUpload = null; const currentUserId = currentAccess?.session?.user?.id || ''; const themeAliases = { blue: 'sky-light', navy: 'ocean-light', light: 'sky-light' }; state.cms.theme = themeAliases[state.cms.theme] || state.cms.theme || 'sky-light'; state.staffDirectory = []; if (backend?.ready) { state.workers = []; state.requests = []; state.complaints = []; state.cvRecords = []; state.cms.published = false }
   let refreshWorkers = () => { }, refreshRequests = () => { }, refreshDashboard = () => { }, refreshCvRecords = () => { }, refreshComplaints = () => { };
   function saveState(sync = true) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); if (sync && backend?.ready) syncCloudState(); return true } catch { return false } }
   async function syncCloudState() {
@@ -74,7 +75,7 @@
         toast(cmsAction === 'publish' ? 'تم نشر المحتوى على الموقع.' : 'حُفظت المسودة. لن تظهر للزوار حتى تضغطي «نشر التغييرات».');
         return true;
       }
-      const workers = state.workers.filter(w => w.cvPath).map(w => ({ ref: w.ref, name: w.name || '', service: w.service, nationality: w.nationality || '', profession: w.profession || '', age: w.age || '', experience: w.experience || '', languages: w.languages || '', skills: w.skills || '', photo_path: w.photoPath || null, total_recruitment_cost: Number(w.totalRecruitmentCost) || null, availability: w.availability, publication: w.publication, cv_path: w.cvPath, cv_file_name: w.cvFileName || '', extracted: Boolean(w.extracted), created_by: w.createdBy || w.created_by || user.id }));
+      const workers = state.workers.filter(w => w.cvPath).map(w => ({ ref: w.ref, name: w.name || '', service: w.service, nationality: w.nationality || '', profession: w.profession || '', age: w.age || '', salary: w.salary || '', religion: w.religion || '', passport_number: w.passportNumber || w.passport_number || '', experience: w.experience || '', languages: w.languages || '', skills: w.skills || '', photo_path: w.photoPath || null, total_recruitment_cost: Number(w.totalRecruitmentCost) || null, availability: w.availability, publication: w.publication, cv_path: w.cvPath, cv_file_name: w.cvFileName || '', extracted: Boolean(w.extracted), created_by: w.createdBy || w.created_by || user.id }));
       if (workers.length) check(await db.from('workers').upsert(workers, { onConflict: 'ref' }), 'worker CV/profile save');
       const requests = state.requests.filter(r => !String(r.name || '').startsWith('عميلة تجريبية')).map(r => ({ id: r.id, status: r.status, assignee: r.assigneeId || null, internal_notes: r.internalNotes || '' }));
       for (const request of requests) { const { id, ...changes } = request; check(await db.from('customer_requests').update(changes).eq('id', id)) }
@@ -83,7 +84,7 @@
       return true;
     } catch (error) { console.error('Supabase save failed', { operation: error.operation, status: error.status, code: error.code, message: error.message, details: error.details, hint: error.hint }); toast(error.status === 403 || error.code === '42501' ? 'رفضت صلاحيات Supabase حفظ ملف العاملة. شغّلي ملف supabase/fix-worker-cv-save-permissions.sql ثم أعيدي المحاولة.' : `تعذر مزامنة التغييرات: ${error.message || 'تحققي من الاتصال والصلاحيات.'}`); return false }
   }
-  async function loadCloudState() { const db = backend?.client; if (!db) return; try { const [workersResult, requestsResult, complaintsResult, cmsResult, staffResult] = await Promise.all([db.from('workers').select('*'), db.from('customer_requests').select('*').order('created_at', { ascending: false }), db.from('customer_complaints').select('*').order('created_at', { ascending: false }), db.from('site_content').select('*').eq('id', 1).maybeSingle(), db.from('staff_directory').select('user_id,full_name,role,active')]); state.staffDirectory = staffResult.data || []; if (workersResult.data) { state.workers = workersResult.data.map(w => ({ ...w, cvId: w.cv_path, cvPath: w.cv_path, cvFileName: w.cv_file_name, photoPath: w.photo_path, createdBy: w.created_by, totalRecruitmentCost: w.total_recruitment_cost, availability: w.availability, publication: w.publication })); state.workers = await hydrateWorkerPhotos(state.workers); state.cvRecords = workersResult.data.map(w => ({ id: w.cv_path, fileName: w.cv_file_name, ref: w.ref, date: new Date(w.created_at).toLocaleDateString('ar-SA'), extracted: w.extracted, cloud: true })) } if (requestsResult.data) { state.requests = requestsResult.data.map(r => ({ id: r.id, name: r.customer_name, mobile: r.mobile, service: r.service, preference: [r.nationality || 'بدون تفضيل', r.profession || 'المهنة غير محددة'].join(' · '), date: new Date(r.created_at).toLocaleString('ar-SA'), status: r.status, assigneeId: r.assignee || '', assignee: state.staffDirectory.find(staff => staff.user_id === r.assignee)?.full_name || 'غير معين', notes: r.notes, internalNotes: r.internal_notes })) } if (complaintsResult.data) { state.complaints = complaintsResult.data.map(c => ({ id: c.id, phone: c.phone, complaintText: c.complaint_text, status: c.status, source: c.source, date: new Date(c.created_at).toLocaleString('ar-SA'), assigneeId: c.assignee || '', assignee: state.staffDirectory.find(staff => staff.user_id === c.assignee)?.full_name || 'غير معين', internalNotes: c.internal_notes })) } const complaintAssignee = document.querySelector('#complaintAssignee'); if (complaintAssignee && state.staffDirectory.length) complaintAssignee.innerHTML = '<option value="">غير معين</option>' + state.staffDirectory.filter(staff => staff.active !== false).map(staff => `<option value="${esc(staff.user_id)}">${esc(staff.full_name)}</option>`).join(''); const assigneeSelect = document.querySelector('#detailAssignee'); if (assigneeSelect && state.staffDirectory.length) assigneeSelect.innerHTML = '<option value="">غير معين</option>' + state.staffDirectory.filter(staff => staff.active !== false).map(staff => `<option value="${esc(staff.user_id)}">${esc(staff.full_name)}</option>`).join(''); if (cmsResult.data) { const c = cmsResult.data, d = c.draft || {}; state.cms = { ...state.cms, headline: d.headline ?? c.headline, subhead: d.subhead ?? c.subhead, theme: d.theme ?? c.theme, sections: d.sections ?? c.sections, sectionContent: { ...state.cms.sectionContent, ...Object.fromEntries((d.sections ?? c.sections ?? []).filter(item => item && typeof item === 'object').map(item => [item.key, item.content || {}])) }, images: d.images ?? c.images, published: c.published }; state.cms.theme = themeAliases[state.cms.theme] || state.cms.theme || 'sky-light'; state.cms.sectionContent.hero = { ...state.cms.sectionContent.hero, title: state.cms.sectionContent.hero?.title || state.cms.headline, description: state.cms.sectionContent.hero?.description || state.cms.subhead } } document.querySelectorAll('[data-cms-field]').forEach(field => { if (state.cms[field.dataset.cmsField] !== undefined) field.value = state.cms[field.dataset.cmsField] }); document.querySelectorAll('[data-cms-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.cmsThemeChoice === (state.cms.theme || 'sky-light')))); document.querySelectorAll('.cms-preview').forEach(preview => preview.dataset.siteTheme = state.cms.theme || 'sky-light'); document.querySelectorAll('[data-cms-image]').forEach(input => { const key = input.dataset.cmsImage, image = state.cms.images?.[key], preview = document.querySelector(`[data-cms-image-preview="${key}"]`); if (image && preview) preview.src = image }); setCmsVideoPreview(state.cms.images?.video); document.body.dataset.siteTheme = state.cms.theme || 'sky-light'; document.querySelectorAll('[data-cms-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.cmsThemeChoice === (state.cms.theme || 'sky-light')))); localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); refreshDashboard(); refreshWorkers(); refreshCvRecords(); refreshRequests(); refreshComplaints(); document.dispatchEvent(new Event('rakaez-cms-loaded')) } catch (error) { console.error('Supabase load failed', error); toast('تعذر تحميل البيانات من قاعدة البيانات.') } }
+  async function loadCloudState() { const db = backend?.client; if (!db) return; try { const [workersResult, requestsResult, complaintsResult, cmsResult, staffResult] = await Promise.all([db.from('workers').select('*'), db.from('customer_requests').select('*').order('created_at', { ascending: false }), db.from('customer_complaints').select('*').order('created_at', { ascending: false }), db.from('site_content').select('*').eq('id', 1).maybeSingle(), db.from('staff_directory').select('user_id,full_name,role,active')]); state.staffDirectory = staffResult.data || []; if (workersResult.data) { state.workers = workersResult.data.map(w => ({ ...w, cvId: w.cv_path, cvPath: w.cv_path, cvFileName: w.cv_file_name, photoPath: w.photo_path, createdBy: w.created_by, totalRecruitmentCost: w.total_recruitment_cost, salary: w.salary || '', religion: w.religion || '', passportNumber: w.passport_number || '', availability: w.availability, publication: w.publication })); state.workers = await hydrateWorkerPhotos(state.workers); state.cvRecords = workersResult.data.map(w => ({ id: w.cv_path, fileName: w.cv_file_name, ref: w.ref, date: new Date(w.created_at).toLocaleDateString('ar-SA'), extracted: w.extracted, cloud: true })) } if (requestsResult.data) { state.requests = requestsResult.data.map(r => ({ id: r.id, name: r.customer_name, mobile: r.mobile, service: r.service, preference: [r.nationality || 'بدون تفضيل', r.profession || 'المهنة غير محددة'].join(' · '), date: new Date(r.created_at).toLocaleString('ar-SA'), status: r.status, assigneeId: r.assignee || '', assignee: state.staffDirectory.find(staff => staff.user_id === r.assignee)?.full_name || 'غير معين', notes: r.notes, internalNotes: r.internal_notes })) } if (complaintsResult.data) { state.complaints = complaintsResult.data.map(c => ({ id: c.id, phone: c.phone, complaintText: c.complaint_text, status: c.status, source: c.source, date: new Date(c.created_at).toLocaleString('ar-SA'), assigneeId: c.assignee || '', assignee: state.staffDirectory.find(staff => staff.user_id === c.assignee)?.full_name || 'غير معين', internalNotes: c.internal_notes })) } const complaintAssignee = document.querySelector('#complaintAssignee'); if (complaintAssignee && state.staffDirectory.length) complaintAssignee.innerHTML = '<option value="">غير معين</option>' + state.staffDirectory.filter(staff => staff.active !== false).map(staff => `<option value="${esc(staff.user_id)}">${esc(staff.full_name)}</option>`).join(''); const assigneeSelect = document.querySelector('#detailAssignee'); if (assigneeSelect && state.staffDirectory.length) assigneeSelect.innerHTML = '<option value="">غير معين</option>' + state.staffDirectory.filter(staff => staff.active !== false).map(staff => `<option value="${esc(staff.user_id)}">${esc(staff.full_name)}</option>`).join(''); if (cmsResult.data) { const c = cmsResult.data, d = c.draft || {}; state.cms = { ...state.cms, headline: d.headline ?? c.headline, subhead: d.subhead ?? c.subhead, theme: d.theme ?? c.theme, sections: d.sections ?? c.sections, sectionContent: { ...state.cms.sectionContent, ...Object.fromEntries((d.sections ?? c.sections ?? []).filter(item => item && typeof item === 'object').map(item => [item.key, item.content || {}])) }, images: d.images ?? c.images, published: c.published }; state.cms.theme = themeAliases[state.cms.theme] || state.cms.theme || 'sky-light'; state.cms.sectionContent.hero = { ...state.cms.sectionContent.hero, title: state.cms.sectionContent.hero?.title || state.cms.headline, description: state.cms.sectionContent.hero?.description || state.cms.subhead } } document.querySelectorAll('[data-cms-field]').forEach(field => { if (state.cms[field.dataset.cmsField] !== undefined) field.value = state.cms[field.dataset.cmsField] }); document.querySelectorAll('[data-cms-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.cmsThemeChoice === (state.cms.theme || 'sky-light')))); document.querySelectorAll('.cms-preview').forEach(preview => preview.dataset.siteTheme = state.cms.theme || 'sky-light'); document.querySelectorAll('[data-cms-image]').forEach(input => { const key = input.dataset.cmsImage, image = state.cms.images?.[key], preview = document.querySelector(`[data-cms-image-preview="${key}"]`); if (image && preview) preview.src = image }); setCmsVideoPreview(state.cms.images?.video); document.body.dataset.siteTheme = state.cms.theme || 'sky-light'; document.querySelectorAll('[data-cms-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.cmsThemeChoice === (state.cms.theme || 'sky-light')))); localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); refreshDashboard(); refreshWorkers(); refreshCvRecords(); refreshRequests(); refreshComplaints(); document.dispatchEvent(new Event('rakaez-cms-loaded')) } catch (error) { console.error('Supabase load failed', error); toast('تعذر تحميل البيانات من قاعدة البيانات.') } }
   if (backend?.ready) loadCloudState();
   window.addEventListener('storage', event => { if (event.key !== STORAGE_KEY) return; state = readState(); refreshDashboard(); refreshWorkers(); refreshCvRecords(); refreshRequests() });
   const employeeRows = document.querySelector('[data-employee-rows]');
@@ -168,23 +169,309 @@
     function renderWorkers() { const q = (search.value || '').trim().toLowerCase(); const rows = state.workers.filter(w => (!q || `${w.ref} ${w.name || ''} ${w.nationality}`.toLowerCase().includes(q)) && (!service.value || w.service === service.value) && (!availability.value || w.availability === availability.value) && (!publication.value || w.publication === publication.value)); document.querySelector('[data-worker-count]').textContent = `${rows.length} من ${state.workers.length} ملفات`; workerBody.innerHTML = rows.length ? rows.map(w => `<tr><td class="record-id">${esc(w.ref)}</td><td><span class="cell-title">${esc(w.service)}</span></td><td>${esc(w.nationality || 'تحتاج مراجعة')}</td><td>${esc(w.profession || 'عاملة منزلية')}</td><td><span class="status-badge ${badgeClass(w.availability)}">${esc(w.availability)}</span></td><td><span class="status-badge ${w.publication === 'منشورة' ? 'status-available' : 'status-draft'}">${esc(w.publication)}</span></td><td><div class="row-actions">${currentAccess?.profile.role === 'admin' ? (w.publication === 'مسودة' ? `<button class="row-action" data-worker-edit="${esc(w.ref)}">مراجعة المسودة</button>` : '—') : `<button class="row-action" data-worker-edit="${esc(w.ref)}">تعديل</button><button class="row-action" data-worker-availability="${esc(w.ref)}">${w.availability === 'متاحة' ? 'تم الحجز' : 'إتاحة'}</button><button class="row-action" data-worker-publish="${esc(w.ref)}">${w.publication === 'منشورة' ? 'إلغاء النشر' : 'نشر'}</button><button class="row-action" data-worker-archive="${esc(w.ref)}">أرشفة</button>`}</div></td></tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><strong>لا توجد نتائج</strong>جرّب تغيير خيارات التصفية.</div></td></tr>' }
     refreshWorkers = renderWorkers;
     [search, service, availability, publication].forEach(el => el?.addEventListener('input', renderWorkers));[service, availability, publication].forEach(el => el?.addEventListener('change', renderWorkers));
-    workerBody.addEventListener('click', event => { const editButton = event.target.closest('[data-worker-edit]'), availabilityButton = event.target.closest('[data-worker-availability]'), publishButton = event.target.closest('[data-worker-publish]'), archiveButton = event.target.closest('[data-worker-archive]'); const button = editButton || availabilityButton || publishButton || archiveButton, ref = button?.dataset.workerEdit || button?.dataset.workerAvailability || button?.dataset.workerPublish || button?.dataset.workerArchive; if (!ref) return; const worker = state.workers.find(w => w.ref === ref); if (!worker) return; if (editButton) { const form = document.querySelector('#workerForm'); document.querySelector('#workerEditRef').value = worker.ref; form.elements.namedItem('availability').disabled = currentAccess?.profile.role === 'admin'; form.elements.namedItem('publication').disabled = currentAccess?.profile.role === 'admin';['ref', 'name', 'service', 'nationality', 'profession', 'age', 'experience', 'totalRecruitmentCost', 'languages', 'skills', 'availability', 'publication'].forEach(key => { const field = form.elements.namedItem(key); if (field) field.value = worker[key] ?? '' }); const photoPreview = document.querySelector('[data-worker-photo-preview]'); if (photoPreview) { photoPreview.src = worker.photoUrl || ''; photoPreview.hidden = !worker.photoUrl } document.querySelector('#workerModalTitle').textContent = `مراجعة بيانات ${worker.ref}`; document.querySelector('#workerFormSubmit').textContent = 'حفظ التعديلات'; bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).show(); return } if (availabilityButton) { worker.availability = worker.availability === 'متاحة' ? 'تم الحجز' : 'متاحة'; saveState(); toast(worker.availability === 'تم الحجز' ? 'تم الحجز وإخفاء البطاقة من الموقع.' : 'أصبحت متاحة وستظهر في الموقع إذا كانت منشورة.') } else if (publishButton) { if (worker.publication !== 'منشورة' && (!worker.photoPath || !worker.name || !worker.age || !worker.nationality || worker.nationality === 'تحتاج مراجعة' || !worker.experience || !Number(worker.totalRecruitmentCost))) { toast('أكمل الصورة والاسم والعمر والجنسية والخبرة وسعر الاستقدام قبل النشر.'); return } worker.publication = worker.publication === 'منشورة' ? 'مسودة' : 'منشورة'; saveState(); toast('تم تحديث حالة النشر.') } else { worker.availability = 'مؤرشفة'; worker.publication = 'مسودة'; saveState(); toast('تمت أرشفة الملف.') } renderWorkers() });
+    workerBody.addEventListener('click', event => { const editButton = event.target.closest('[data-worker-edit]'), availabilityButton = event.target.closest('[data-worker-availability]'), publishButton = event.target.closest('[data-worker-publish]'), archiveButton = event.target.closest('[data-worker-archive]'); const button = editButton || availabilityButton || publishButton || archiveButton, ref = button?.dataset.workerEdit || button?.dataset.workerAvailability || button?.dataset.workerPublish || button?.dataset.workerArchive; if (!ref) return; const worker = state.workers.find(w => w.ref === ref); if (!worker) return; if (editButton) { const form = document.querySelector('#workerForm'); document.querySelector('#workerEditRef').value = worker.ref; form.elements.namedItem('availability').disabled = currentAccess?.profile.role === 'admin'; form.elements.namedItem('publication').disabled = currentAccess?.profile.role === 'admin';['ref', 'name', 'service', 'nationality', 'profession', 'age', 'experience', 'salary', 'religion', 'passportNumber', 'totalRecruitmentCost', 'languages', 'skills', 'availability', 'publication'].forEach(key => { const field = form.elements.namedItem(key); if (field) field.value = worker[key] ?? '' }); const photoPreview = document.querySelector('[data-worker-photo-preview]'); if (photoPreview) { photoPreview.src = worker.photoUrl || ''; photoPreview.hidden = !worker.photoUrl } document.querySelector('#workerModalTitle').textContent = `مراجعة بيانات ${worker.ref}`; document.querySelector('#workerFormSubmit').textContent = 'حفظ التعديلات'; bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).show(); return } if (availabilityButton) { worker.availability = worker.availability === 'متاحة' ? 'تم الحجز' : 'متاحة'; saveState(); toast(worker.availability === 'تم الحجز' ? 'تم الحجز وإخفاء البطاقة من الموقع.' : 'أصبحت متاحة وستظهر في الموقع إذا كانت منشورة.') } else if (publishButton) { if (worker.publication !== 'منشورة' && (!worker.photoPath || !worker.name || !worker.age || !worker.nationality || worker.nationality === 'تحتاج مراجعة' || !worker.experience || !Number(worker.totalRecruitmentCost))) { toast('أكمل الصورة والاسم والعمر والجنسية والخبرة وسعر الاستقدام قبل النشر.'); return } worker.publication = worker.publication === 'منشورة' ? 'مسودة' : 'منشورة'; saveState(); toast('تم تحديث حالة النشر.') } else { worker.availability = 'مؤرشفة'; worker.publication = 'مسودة'; saveState(); toast('تمت أرشفة الملف.') } renderWorkers() });
     document.querySelector('#workerPhotoFile')?.addEventListener('change', event => { const file = event.target.files?.[0], preview = document.querySelector('[data-worker-photo-preview]'); if (!file || !preview) return; if (!file.type.startsWith('image/')) { event.target.value = ''; return } preview.src = URL.createObjectURL(file); preview.hidden = false });
-    document.querySelector('#workerForm')?.addEventListener('submit', async event => { event.preventDefault(); const form = event.currentTarget; if (!form.reportValidity()) return; const data = Object.fromEntries(new FormData(form)), editRef = document.querySelector('#workerEditRef').value; if (!editRef) { toast('يتم إنشاء الملفات الجديدة عبر رفع PDF فقط.'); return } const worker = state.workers.find(item => item.ref === editRef); if (!worker) return; const photoFile = document.querySelector('#workerPhotoFile')?.files?.[0]; if (photoFile) { try { const compressed = await compressImage(photoFile), blob = await (await fetch(compressed)).blob(), path = `${worker.ref}/${Date.now()}.jpg`, { error } = await backend.client.storage.from('worker-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false }); if (error) throw error; worker.photoPath = path; worker.photoUrl = URL.createObjectURL(blob) } catch { toast('تعذر رفع صورة البطاقة إلى التخزين الخاص.'); return } } if (data.publication === 'منشورة' && (!worker.photoPath || !data.name || !data.age || !data.nationality || data.nationality === 'تحتاج مراجعة' || !data.experience || !Number(data.totalRecruitmentCost))) { toast('أكمل الصورة والاسم والعمر والجنسية والخبرة وسعر الاستقدام قبل النشر.'); return } Object.assign(worker, data, { ref: editRef, totalRecruitmentCost: Number(data.totalRecruitmentCost) }); saveState(); renderWorkers(); refreshCvRecords(); form.reset(); document.querySelector('#workerPhotoFile').value = ''; bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).hide(); toast('تم تحديث بيانات الملف المرتبط بالسيرة.') });
-    document.querySelector('[data-worker-export]')?.addEventListener('click', () => downloadCsv('workers-demo.csv', ['الرقم المرجعي', 'نوع الخدمة', 'الجنسية', 'المهنة', 'التوفر', 'النشر'], state.workers.map(w => [w.ref, w.service, w.nationality, w.profession, w.availability, w.publication])));
-    renderWorkers();
-  }
+    function imageBlobFromBase64(value) {
+      const binary = atob(value || '');
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return new Blob([bytes], { type: 'image/jpeg' });
+    }
+    function clearExtractionHints() {
+      document.querySelectorAll('[data-review-key]').forEach(field => {
+        field.classList.remove('needs-review');
+        const hint = field.querySelector('.field-confidence');
+        if (hint) { hint.textContent = ''; hint.classList.remove('low'); }
+      });
+      const summary = document.querySelector('#cvReviewSummary');
+      if (summary) { summary.replaceChildren(); summary.hidden = true; }
+      const candidates = document.querySelector('#workerPhotoCandidates');
+      if (candidates) { candidates.replaceChildren(); candidates.hidden = true; }
+    }
+    function renderExtractionReview(pending) {
+      clearExtractionHints();
+      const form = document.querySelector('#workerForm');
+      const fieldMap = {
+        salary: ['salary', 'workerSalary'], nationality: ['nationality', 'workerNationality'],
+        religion: ['religion', 'workerReligion'], age: ['age', 'workerAge'],
+        job: ['profession', 'workerProfession'], passport_number: ['passportNumber', 'workerPassport'],
+        experience: ['experience', 'workerExperience']
+      };
+      Object.entries(fieldMap).forEach(([source, [target, id]]) => {
+        const input = document.getElementById(id);
+        const value = pending.fields?.[source];
+        if (input) input.value = value == null ? '' : String(value);
+        const wrapper = document.querySelector('[data-review-key="' + source + '"]');
+        const hint = wrapper?.querySelector('.field-confidence');
+        if (!hint) return;
+        const confidence = Number(pending.confidence?.[source] || 0);
+        const missing = value == null || String(value).trim() === '';
+        hint.textContent = pending.extractionError ? 'اكتبي القيمة يدويًا؛ لم يكتمل الاستخراج.' : missing ? 'لم تُكتشف قيمة في السيرة.' : 'ثقة الاستخراج: ' + Math.round(confidence * 100) + '% · راجعي القيمة';
+        const low = pending.extractionError || missing || confidence < 0.72;
+        wrapper.classList.toggle('needs-review', low);
+        hint.classList.toggle('low', low);
+      });
+      form.elements.namedItem('name').value = '';
+      form.elements.namedItem('service').value = 'الاستقدام';
+      form.elements.namedItem('ref').value = pending.ref;
+      form.elements.namedItem('availability').value = 'متاحة';
+      form.elements.namedItem('publication').value = 'مسودة';
+      form.elements.namedItem('totalRecruitmentCost').value = '';
+      form.elements.namedItem('languages').value = '';
+      form.elements.namedItem('skills').value = '';
+      const summary = document.querySelector('#cvReviewSummary');
+      const heading = document.createElement('strong');
+      heading.textContent = pending.extractionError ? 'احتفظنا بملف PDF؛ أدخلي البيانات غير المستخرجة يدويًا.' : 'راجعي البيانات قبل تأكيد إنشاء ملف العاملة.';
+      summary.append(heading);
+      const notes = [];
+      if (pending.extractionError) notes.push(pending.extractionError);
+      else if (!pending.extracted) notes.push('لم تظهر بيانات كافية في الملف. الحقول غير المكتشفة بقيت فارغة.');
+      (pending.warnings || []).forEach(note => notes.push(note));
+      if (!String(form.elements.namedItem('name').value || '').trim()) notes.push('اسم المرشحة غير موجود ضمن الحقول التي يستخرجها المحرك؛ أدخليه يدويًا.');
+      if (notes.length) {
+        const list = document.createElement('ul');
+        notes.forEach(note => { const item = document.createElement('li'); item.textContent = note; list.append(item); });
+        summary.append(list);
+      }
+      summary.hidden = false;
 
-  // CV intake: text PDFs create private draft profiles automatically; scanned PDFs need review.
+      const photoBox = document.querySelector('#workerPhotoCandidates');
+      const preview = document.querySelector('[data-worker-photo-preview]');
+      preview.hidden = true;
+      preview.removeAttribute('src');
+      const photoInput = document.querySelector('#workerPhotoFile');
+      photoInput.value = '';
+      const validPhotos = (pending.photos || []).filter(photo => photo.data && photo.id);
+      if (pending.localPhotoBlob) {
+        preview.src = URL.createObjectURL(pending.localPhotoBlob);
+        preview.hidden = false;
+      }
+      if (validPhotos.length) {
+        validPhotos.forEach(photo => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'photo-candidate';
+          button.dataset.photoCandidate = photo.id;
+          button.setAttribute('aria-pressed', String(photo.id === pending.selectedPhotoId));
+          const image = document.createElement('img');
+          image.src = 'data:image/jpeg;base64,' + photo.data;
+          image.alt = 'صورة مرشحة من صفحة ' + String(photo.page || 1);
+          const label = document.createElement('strong');
+          label.textContent = photo.type === 'portrait' ? 'صورة شخصية' : photo.type === 'full_body' ? 'صورة كاملة' : photo.type === 'passport_copy' ? 'صورة من مستند سفر' : 'صورة مرشحة';
+          const score = document.createElement('small');
+          score.textContent = 'الصفحة ' + String(photo.page || 1) + ' · ثقة ' + Math.round(Number(photo.score || 0) * 100) + '%';
+          button.append(image, label, score);
+          photoBox.append(button);
+        });
+        photoBox.hidden = false;
+        const chosen = validPhotos.find(photo => photo.id === pending.selectedPhotoId);
+        if (chosen) { preview.src = 'data:image/jpeg;base64,' + chosen.data; preview.hidden = false; }
+      }
+    }
+
+    document.querySelector('#workerPhotoCandidates')?.addEventListener('click', event => {
+      const button = event.target.closest('[data-photo-candidate]');
+      if (!button || !activeCvUpload) return;
+      activeCvUpload.selectedPhotoId = button.dataset.photoCandidate;
+      document.querySelectorAll('[data-photo-candidate]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+      const photo = activeCvUpload.photos.find(item => item.id === activeCvUpload.selectedPhotoId);
+      const preview = document.querySelector('[data-worker-photo-preview]');
+      if (photo && preview) { preview.src = 'data:image/jpeg;base64,' + photo.data; preview.hidden = false; }
+      document.querySelector('#workerPhotoFile').value = '';
+    });
+    document.querySelector('#workerPhotoFile')?.addEventListener('change', event => {
+      const file = event.currentTarget.files?.[0];
+      if (!file) return;
+      const preview = document.querySelector('[data-worker-photo-preview]');
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+      if (activeCvUpload) activeCvUpload.selectedPhotoId = '';
+      document.querySelectorAll('[data-photo-candidate]').forEach(item => item.setAttribute('aria-pressed', 'false'));
+    });
+
+    document.querySelector('#workerForm')?.addEventListener('submit', async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      if (!form.reportValidity()) return;
+      const data = Object.fromEntries(new FormData(form));
+      data.publication = form.elements.namedItem('publication').value || 'مسودة';
+      data.availability = form.elements.namedItem('availability').value || 'متاحة';
+      const editRef = document.querySelector('#workerEditRef').value;
+      const photoFile = document.querySelector('#workerPhotoFile')?.files?.[0];
+      const button = document.querySelector('#workerFormSubmit');
+      button.disabled = true;
+      try {
+        if (editRef) {
+          const worker = state.workers.find(item => item.ref === editRef);
+          if (!worker) return;
+          if (photoFile && backend?.ready) {
+            const compressed = await compressImage(photoFile), blob = await (await fetch(compressed)).blob();
+            const path = currentUserId + '/' + worker.ref + '/' + Date.now() + '.jpg';
+            const { error } = await backend.client.storage.from('worker-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: false });
+            if (error) throw error;
+            worker.photoPath = path;
+            worker.photoUrl = URL.createObjectURL(blob);
+          }
+          if (data.publication === 'منشورة' && (!worker.photoPath || !data.name || !data.age || !data.nationality || !data.experience || !Number(data.totalRecruitmentCost))) {
+            toast('أكمل الصورة والاسم والعمر والجنسية والخبرة وسعر الاستقدام قبل النشر.');
+            return;
+          }
+          Object.assign(worker, data, { ref: editRef, totalRecruitmentCost: data.totalRecruitmentCost ? Number(data.totalRecruitmentCost) : '' });
+          saveState();
+          renderWorkers();
+          refreshCvRecords();
+          form.reset();
+          clearExtractionHints();
+          bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).hide();
+          toast('تم تحديث بيانات الملف المرتبط بالسيرة.');
+          return;
+        }
+
+        if (!activeCvUpload) { toast('ارفعي السيرة الذاتية أولًا.'); return; }
+        if (data.publication === 'منشورة' && (!data.name || !data.age || !data.nationality || !data.profession || !data.experience || !data.totalRecruitmentCost)) {
+          toast('أكملي الاسم والعمر والجنسية والمهنة والخبرة والسعر قبل نشر البطاقة.');
+          return;
+        }
+        if (currentAccess?.profile.role === 'admin' && data.publication !== 'مسودة') {
+          toast('صلاحية الأدمن تحفظ الملفات كمسودة فقط.');
+          return;
+        }
+
+        const pending = activeCvUpload;
+        let photoBlob = null;
+        if (photoFile) {
+          const compressed = await compressImage(photoFile);
+          photoBlob = await (await fetch(compressed)).blob();
+        } else if (pending.selectedPhotoId) {
+          const selected = pending.photos.find(item => item.id === pending.selectedPhotoId);
+          if (selected?.data) photoBlob = imageBlobFromBase64(selected.data);
+        } else if (pending.localPhotoBlob) photoBlob = pending.localPhotoBlob;
+
+        let photoPath = pending.photoPath || '';
+        let photoUrl = '';
+        if (backend?.ready && photoBlob && !photoPath) {
+          const photoName = pending.cvId + '.jpg';
+          photoPath = currentUserId + '/' + pending.ref + '/' + photoName;
+          const upload = await backend.client.storage.from('worker-photos').upload(photoPath, photoBlob, { contentType: 'image/jpeg', upsert: false });
+          if (upload.error) throw upload.error;
+          pending.photoPath = photoPath;
+        }
+        if (photoBlob) photoUrl = URL.createObjectURL(photoBlob);
+
+        const worker = {
+          ref: pending.ref, cvId: pending.cvId, cvPath: pending.cvPath || '', cvFileName: pending.fileName,
+          createdBy: currentUserId, name: String(data.name || '').trim(), service: data.service || 'الاستقدام',
+          nationality: String(data.nationality || '').trim(), profession: String(data.profession || '').trim(),
+          age: String(data.age || '').trim(), salary: String(data.salary || '').trim(), religion: String(data.religion || '').trim(),
+          passportNumber: String(data.passportNumber || '').trim(), experience: String(data.experience || '').trim(),
+          languages: String(data.languages || '').trim(), skills: String(data.skills || '').trim(),
+          totalRecruitmentCost: data.totalRecruitmentCost ? Number(data.totalRecruitmentCost) : '',
+          photoPath, photoUrl, availability: data.availability || 'متاحة', publication: data.publication || 'مسودة',
+          extracted: Boolean(pending.extracted)
+        };
+
+        if (backend?.ready) {
+          const payload = {
+            ref: worker.ref, name: worker.name, service: worker.service, nationality: worker.nationality,
+            profession: worker.profession, age: worker.age, salary: worker.salary, religion: worker.religion,
+            passport_number: worker.passportNumber, experience: worker.experience, languages: worker.languages,
+            skills: worker.skills, photo_path: worker.photoPath || null,
+            total_recruitment_cost: worker.totalRecruitmentCost === '' ? null : worker.totalRecruitmentCost,
+            availability: worker.availability, publication: worker.publication, cv_path: worker.cvPath,
+            cv_file_name: worker.cvFileName, extracted: worker.extracted, created_by: currentUserId
+          };
+          const { data: inserted, error } = await backend.client.from('workers').insert(payload).select('*').single();
+          if (error) {
+            if (/salary|religion|passport_number/i.test(error.message || '')) {
+              status.textContent = 'لم يُحفظ الملف بعد. شغّلي supabase/add-worker-cv-extraction-fields.sql في SQL Editor، ثم أعيدي التأكيد. بقيت السيرة والصورة في التخزين الخاص.';
+            } else status.textContent = 'تعذر حفظ ملف العاملة في قاعدة البيانات. بقيت السيرة والصورة في التخزين الخاص؛ أعيدي المحاولة بعد التحقق من الاتصال والصلاحيات.';
+            throw error;
+          }
+          Object.assign(worker, { id: inserted.id, created_at: inserted.created_at, updated_at: inserted.updated_at });
+          pending.photoPath = photoPath;
+        } else {
+          await cvDbAction('put', { id: pending.cvId, fileName: pending.fileName, blob: pending.file, photoBlob });
+        }
+
+        state.workers.unshift(worker);
+        state.cvRecords.unshift({ id: pending.cloud ? pending.cvPath : pending.cvId, fileName: pending.fileName, ref: pending.ref, date: new Date().toLocaleDateString('ar-SA'), extracted: pending.extracted, photoExtracted: Boolean(photoBlob), cloud: Boolean(pending.cloud) });
+        saveState(false);
+        renderWorkers();
+        refreshCvRecords();
+        status.textContent = 'تم حفظ المسودة ' + pending.ref + (pending.extractionError ? '؛ يمكنك استكمال البيانات يدويًا.' : ' بعد مراجعتك.');
+        activeCvUpload = null;
+        form.reset();
+        clearExtractionHints();
+        document.querySelector('#workerPhotoFile').value = '';
+        document.querySelector('#workerEditRef').value = '';
+        bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).hide();
+        toast('تم تأكيد البيانات وحفظ مسودة العاملة.');
+      } catch (error) {
+        console.error('Worker CV confirmation failed', error);
+        if (error.message === 'supabase_upload_failed') status.textContent = 'تعذر حفظ السيرة في التخزين الخاص. لم يُنشأ سجل العاملة.';
+        else if (!status.textContent.startsWith('لم يُحفظ الملف بعد')) status.textContent = 'تعذر حفظ المسودة. بقيت السيرة المرفوعة وبيانات المراجعة كما هي؛ أعيدي المحاولة.';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
   const cvInput = document.querySelector('#cvFiles'), cvBody = document.querySelector('#cvTableBody');
   if (cvInput && cvBody) {
     const status = document.querySelector('#cvProcessingStatus');
     function renderCvRecords() { const rows = state.cvRecords; document.querySelector('[data-cv-count]').textContent = `${rows.length} ملفات`; cvBody.innerHTML = rows.length ? rows.map(record => { const worker = state.workers.find(w => w.ref === record.ref); return `<tr><td><strong class="cell-title">${esc(record.fileName)}</strong></td><td>${esc(worker?.name || 'يحتاج مراجعة')}</td><td class="record-id">${esc(record.ref)}</td><td>${esc(worker?.nationality || 'تحتاج مراجعة')}</td><td>${esc(worker?.profession || 'عاملة منزلية')}</td><td><span class="status-badge ${record.extracted ? 'status-available' : 'status-progress'}">${record.extracted ? 'اكتمل الاستخراج' : 'تحتاج مراجعة'}</span></td><td>${esc(record.date)}</td><td><div class="row-actions"><button class="row-action" data-cv-open="${esc(record.id)}">مراجعة</button><button class="row-action" data-cv-download="${esc(record.id)}">تنزيل</button>${currentAccess?.profile.role === 'admin' ? '' : `<button class="row-action" data-cv-delete="${esc(record.id)}">حذف</button>`}</div></td></tr>` }).join('') : '<tr><td colspan="8"><div class="empty-state"><strong>مكتبة السير الذاتية فارغة</strong>ارفع PDF لإنشاء بروفايل وربط السيرة به.</div></td></tr>' }
     refreshCvRecords = renderCvRecords;
-    cvInput.addEventListener('change', async () => { const files = [...cvInput.files].filter(file => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')); if (!files.length) { status.textContent = 'اختر ملفات PDF فقط.'; return } for (const file of files) { status.textContent = `جارٍ تحليل ${file.name} وإنشاء الملف...`; const id = `CV-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ref = `WK-${String(Date.now()).slice(-5)}${Math.floor(Math.random() * 90 + 10)}`; let text = '', photoBlob = null, fields = { name: file.name.replace(/\.pdf$/i, ''), nationality: '', profession: 'عاملة منزلية', age: '', experience: '', languages: '', skills: '', totalRecruitmentCost: '', matchCount: 0 }, extracted = false; try { text = await extractPdfText(file); fields = parsePdfFields(text, file.name, ref); extracted = text.trim().length > 20 && fields.matchCount > 0 } catch { } try { photoBlob = await extractPdfPhoto(file) } catch (error) { console.warn('No extractable CV photo', error) } const worker = { ref, createdBy: currentUserId, name: fields.name || '', service: 'الاستقدام', nationality: fields.nationality || 'تحتاج مراجعة', profession: fields.profession || 'عاملة منزلية', age: fields.age || '', experience: fields.experience || '', languages: fields.languages || '', skills: fields.skills || '', totalRecruitmentCost: fields.totalRecruitmentCost || '', photoPath: '', photoUrl: photoBlob ? URL.createObjectURL(photoBlob) : '', availability: 'متاحة', publication: 'مسودة', cvId: id, extracted, cvFileName: file.name }; const record = { id, fileName: file.name, ref, date: new Date().toLocaleDateString('ar-SA'), extracted, photoExtracted: Boolean(photoBlob) }; try { if (backend?.ready) { const path = currentAccess?.profile.role === 'admin' ? `${currentUserId}/${ref}/${id}.pdf` : `${ref}/${id}.pdf`; const { error } = await backend.client.storage.from('worker-cvs').upload(path, file, { contentType: 'application/pdf', upsert: false }); if (error) throw error; worker.cvPath = path; record.id = path; record.cloud = true; if (photoBlob) { const photoData = await compressImage(photoBlob), photoFile = await (await fetch(photoData)).blob(), photoPath = currentAccess?.profile.role === 'admin' ? `${currentUserId}/${ref}/${id}.jpg` : `${ref}/${id}.jpg`, photoUpload = await backend.client.storage.from('worker-photos').upload(photoPath, photoFile, { contentType: 'image/jpeg', upsert: false }); if (photoUpload.error) throw photoUpload.error; worker.photoPath = photoPath; worker.photoUrl = URL.createObjectURL(photoFile) } } else await cvDbAction('put', { id, fileName: file.name, blob: file, photoBlob }) } catch (error) { console.error('CV upload failed', error); status.textContent = `تعذر حفظ ${file.name} أو صورته في التخزين. لم يتم إنشاء البروفايل.`; continue } state.workers.unshift(worker); state.cvRecords.unshift(record); if (!saveState()) { state.workers.shift(); state.cvRecords.shift(); status.textContent = 'تعذر حفظ بيانات الملف؛ لم يتم إنشاء البروفايل.'; continue } status.textContent = `تم إنشاء مسودة ${ref}${photoBlob ? ' مع صورة مستخرجة من PDF.' : ' — لم نعثر على صورة شخصية قابلة للاستخراج؛ أرفقها أثناء المراجعة.'}${fields.totalRecruitmentCost ? ' تم استخراج السعر أيضًا.' : ' أضف إجمالي سعر الاستقدام قبل النشر.'}` } refreshWorkers(); renderCvRecords(); cvInput.value = '' });
-    const dropZone = document.querySelector('[data-cv-drop-zone]'); dropZone?.addEventListener('dragover', event => { event.preventDefault(); dropZone.classList.add('is-dragover') }); dropZone?.addEventListener('dragleave', () => dropZone.classList.remove('is-dragover')); dropZone?.addEventListener('drop', event => { event.preventDefault(); dropZone.classList.remove('is-dragover'); const transfer = new DataTransfer();[...event.dataTransfer.files].filter(file => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')).forEach(file => transfer.items.add(file)); cvInput.files = transfer.files; cvInput.dispatchEvent(new Event('change', { bubbles: true })) });
+    cvInput.addEventListener('change', async () => {
+      const file = cvInput.files?.[0];
+      if (!file) return;
+      const status = document.querySelector('#cvProcessingStatus');
+      const stamp = Date.now();
+      try {
+        let pending;
+        if (backend?.ready && window.RakaezCVExtraction) {
+          pending = await window.RakaezCVExtraction.extract(file, {
+            client: backend.client,
+            userId: currentUserId,
+            onStatus: message => { status.textContent = message; }
+          });
+        } else {
+          if (!file.name.toLowerCase().endsWith('.pdf') || file.size > 15 * 1024 * 1024) throw new Error(file.size > 15 * 1024 * 1024 ? 'file_too_large' : 'invalid_pdf');
+          const prefix = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+          if (!new TextDecoder('ascii').decode(prefix).includes('%PDF-')) throw new Error('invalid_pdf');
+          const ref = 'WK-' + String(stamp).slice(-7) + Math.floor(Math.random() * 90 + 10);
+          const cvId = 'CV-' + stamp + '-' + Math.random().toString(36).slice(2, 7);
+          let text = '', localFields = {}, localPhotoBlob = null;
+          try { text = await extractPdfText(file); localFields = parsePdfFields(text, file.name, ref); } catch { }
+          try { localPhotoBlob = await extractPdfPhoto(file); } catch { }
+          await cvDbAction('put', { id: cvId, fileName: file.name, blob: file, photoBlob: localPhotoBlob });
+          pending = {
+            ref, cvId, fileName: file.name, file, cloud: false, cvPath: '', extracted: false,
+            fields: { salary: '', nationality: localFields.nationality || '', religion: '', age: localFields.age || '', job: localFields.profession || '', passport_number: '', experience: localFields.experience || '' },
+            confidence: {}, warnings: [], photos: [], selectedPhotoId: '', localPhotoBlob,
+            extractionError: 'تحليل Python يحتاج نشر خدمة الاستخراج وربط حساب موظف. راجعي القيم أو أدخليها يدويًا.'
+          };
+        }
+        pending.createdBy = currentUserId;
+        if (!pending.file) pending.file = file;
+        if (!pending.selectedPhotoId) pending.selectedPhotoId = pending.selectedPhoto || '';
+        activeCvUpload = pending;
+        renderExtractionReview(pending);
+        document.querySelector('#workerEditRef').value = '';
+        document.querySelector('#workerModalTitle').textContent = 'مراجعة السيرة ' + pending.ref;
+        document.querySelector('#workerFormSubmit').textContent = 'تأكيد وحفظ المسودة';
+        document.querySelector('#workerAvailability').disabled = false;
+        document.querySelector('#workerPublish').disabled = false;
+        status.textContent = pending.extractionError ? pending.extractionError + ' احتفظنا بالسيرة ويمكنك المتابعة يدويًا.' : 'اكتمل التحليل. راجعي الحقول والصورة ثم أكدي الحفظ.';
+        bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).show();
+      } catch (error) {
+        console.error('CV upload/extraction failed', error);
+        status.textContent = window.RakaezCVExtraction?.messageFor(error.message) || 'تعذر قراءة ملف PDF. اختاري ملفًا صالحًا وحاولي مجددًا.';
+      } finally {
+        cvInput.value = '';
+      }
+    });
     cvBody.addEventListener('click', async event => { const open = event.target.closest('[data-cv-open]'), download = event.target.closest('[data-cv-download]'), remove = event.target.closest('[data-cv-delete]'); if (open || download) { try { const id = open?.dataset.cvOpen || download?.dataset.cvDownload, record = state.cvRecords.find(item => item.id === id); let url; if (record?.cloud) { const { data, error } = await backend.client.storage.from('worker-cvs').createSignedUrl(id, 60); if (error) throw error; url = data.signedUrl } else { const file = await cvDbAction('get', id); if (!file?.blob) throw new Error(); url = URL.createObjectURL(file.blob) } if (open) { const preview = window.open(url, '_blank'); if (!preview) { const link = document.createElement('a'); link.href = url; link.download = record?.fileName || 'cv.pdf'; link.click() } } else { const link = document.createElement('a'); link.href = url; link.download = record?.fileName || 'cv.pdf'; link.click() } if (!record?.cloud) setTimeout(() => URL.revokeObjectURL(url), 60000) } catch { toast('تعذر فتح السيرة. تحقق من التخزين الخاص والصلاحية.') } } if (remove) { const id = remove.dataset.cvDelete, record = state.cvRecords.find(item => item.id === id), worker = state.workers.find(item => item.cvId === id || item.cvPath === id); state.cvRecords = state.cvRecords.filter(item => item.id !== id); state.workers = state.workers.filter(item => item.cvId !== id && item.cvPath !== id); try { if (record?.cloud) { await backend.client.from('workers').delete().eq('ref', record.ref); await backend.client.storage.from('worker-cvs').remove([id]); if (worker?.photoPath) await backend.client.storage.from('worker-photos').remove([worker.photoPath]) } else await cvDbAction('delete', id) } catch { } saveState(); renderCvRecords(); refreshWorkers(); toast('تم حذف السيرة والبروفايل المرتبطين بها.') } });
     renderCvRecords();
+  }
   }
 
   // Request follow-up workflow, with the contact status visible in the table.
