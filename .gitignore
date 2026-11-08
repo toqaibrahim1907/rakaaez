@@ -4,5 +4,7 @@
 node_modules/
 .vercel/
 *.log
+__pycache__/
+*.py[cod]
 .DS_Store
 Thumbs.db
