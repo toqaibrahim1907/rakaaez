@@ -8,15 +8,15 @@ applyCmsTheme(readAdminData().cms?.theme);
 function htmlEscape(value) { return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char])) }
 function getPublicWorkers() {
   const saved = readAdminData();
-  if (Array.isArray(saved.workers)) return saved.workers.filter(worker => worker.cvId && worker.publication === 'منشورة' && worker.availability === 'متاحة').map(worker => ({ ref: worker.ref, name: worker.name, photoUrl: worker.photoUrl, nationality: worker.nationality, profession: worker.profession, service: worker.service, status: worker.availability, age: worker.age, experience: worker.experience, totalRecruitmentCost: worker.totalRecruitmentCost, languages: worker.languages, skills: worker.skills }));
+  if (Array.isArray(saved.workers)) return saved.workers.filter(worker => worker.cvId && worker.publication === 'منشورة' && worker.availability === 'متاحة').map(worker => ({ ref: worker.ref, name: worker.name, photoUrl: worker.photoUrl, cvPath: worker.cvPath, cvFileName: worker.cvFileName, nationality: worker.nationality, profession: worker.profession, service: worker.service, status: worker.availability, age: worker.age, experience: worker.experience, totalRecruitmentCost: worker.totalRecruitmentCost, languages: worker.languages, skills: worker.skills }));
   return [];
 }
 function workerCard(worker) {
-  const text = encodeURIComponent(`السلام عليكم، أرغب في الاستفسار عن البطاقة ${worker.ref}.`);
   const details = [worker.age && ['العمر', worker.age], worker.experience && ['الخبرة', worker.experience]].filter(Boolean).map(([label, value]) => `<div><small>${label}</small><span>${htmlEscape(value)}</span></div>`).join('');
   const price = Number(worker.totalRecruitmentCost), priceText = worker.totalRecruitmentCost !== '' && worker.totalRecruitmentCost != null && Number.isFinite(price) ? new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'SAR', maximumFractionDigits: 0 }).format(price) : '';
   const photo = worker.photoUrl ? `<img class="worker-portrait" src="${htmlEscape(worker.photoUrl)}" alt="صورة ${htmlEscape(worker.name || 'العاملة')}" loading="lazy">` : '<span class="worker-avatar" aria-hidden="true">✦</span>';
-  return `<div class="col-md-6 col-lg-4"><article class="worker-card"><div class="worker-photo">${photo}<span class="demo-tag">متاحة</span></div><div class="worker-body"><span class="worker-ref">رقم مرجعي: ${htmlEscape(worker.ref)}</span><h3>${htmlEscape(worker.name || 'ملف مرشح')}</h3><div class="worker-meta"><span>${htmlEscape(worker.nationality)}</span><span>${htmlEscape(worker.profession)}</span><span>${htmlEscape(worker.service)}</span></div>${details ? `<div class="worker-profile-details">${details}</div>` : ''}${priceText ? `<div class="worker-price"><small>إجمالي سعر الاستقدام</small><strong>${htmlEscape(priceText)}</strong></div>` : ''}<div class="worker-cta"><span>ملف مختصر</span><a href="https://wa.me/966920016419?text=${text}" target="_blank" rel="noopener">استفسر عبر واتساب ↗</a></div></div></article></div>`;
+  const priceLabel = worker.service === 'التأجير' ? 'سعر التأجير الشهري' : 'إجمالي سعر الاستقدام';
+  return `<div class="col-md-6 col-lg-4"><article class="worker-card"><div class="worker-photo">${photo}<span class="demo-tag">متاحة</span><span class="worker-photo-ref">${htmlEscape(worker.ref)}</span></div><div class="worker-body"><div class="worker-card-heading"><span class="worker-card-kicker">ملف عاملة منزلية</span><h3>${htmlEscape(worker.name || 'ملف مرشحة')}</h3></div><div class="worker-meta"><span>${htmlEscape(worker.nationality)}</span><span>${htmlEscape(worker.profession)}</span><span>${htmlEscape(worker.service)}</span></div>${details ? `<div class="worker-profile-details">${details}</div>` : ''}${priceText ? `<div class="worker-price"><small>${priceLabel}</small><strong>${htmlEscape(priceText)}</strong></div>` : ''}<button class="worker-order-button" type="button" data-worker-order="${htmlEscape(worker.ref)}">اطلب العاملة <span aria-hidden="true">←</span></button></div></article></div>`;
 }
 function applyCmsSectionImages(images = {}) { const setImage = (key, selector, position = 'append') => { const imageUrl = images[key], target = document.querySelector(selector); if (!imageUrl || !target) return; let image = target.querySelector(`[data-cms-managed-image="${key}"]`); if (!image) { image = document.createElement('img'); image.dataset.cmsManagedImage = key; image.className = 'cms-managed-image'; image.alt = ''; image.loading = 'lazy'; if (position === 'prepend') target.prepend(image); else target.append(image) } image.src = imageUrl }; setImage('servicesRental', '.rental-panel', 'prepend'); setImage('servicesRecruitment', '.recruit-panel', 'prepend'); setImage('workers', '.workers-preview .container', 'prepend'); const card = document.querySelector('.promise-card'); if (card) { if (images.cta) card.style.backgroundImage = `linear-gradient(105deg,rgba(11,103,158,.87),rgba(16,47,77,.9)),url("${images.cta}")`; else card.style.removeProperty('background-image') } }
 function applyCmsSectionContent(sections = []) { const get = key => sections.find(item => item && typeof item === 'object' && item.key === key)?.content || {}; const set = (selector, value) => { const node = document.querySelector(selector); if (node && value) node.textContent = value }; const hero = get('hero'), about = get('about'), services = get('services'), workers = get('workers'), cta = get('cta'); set('.hero-copy>.eyebrow', hero.eyebrow); set('.hero-copy h1', hero.title); set('.hero-copy>p', hero.description); set('.about-teaser .eyebrow', about.eyebrow); set('.about-teaser .display-title', about.title); set('.about-teaser .body-copy', about.description); set('.service-switch .section-heading .eyebrow', services.eyebrow); set('.service-switch .section-heading h2', services.title); set('.service-switch .section-heading p', services.description); set('.rental-panel h3', services.rentalTitle); set('.rental-panel p', services.rentalDescription); set('.recruit-panel h3', services.recruitmentTitle); set('.recruit-panel p', services.recruitmentDescription); set('.workers-preview .section-head-row .eyebrow', workers.eyebrow); set('.workers-preview .section-head-row h2', workers.title); set('.workers-preview .section-head-row p', workers.description); set('.promise-card .eyebrow', cta.eyebrow); set('.promise-card h2', cta.title); set('.promise-card p', cta.description); set('.promise-card a.btn', cta.buttonLabel); const reviews = get('testimonials'); set('[data-reviews-eyebrow]', reviews.eyebrow); set('[data-reviews-title]', reviews.title); set('[data-reviews-description]', reviews.description) }
@@ -78,3 +78,83 @@ if (requestForm) {
     try { localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(data)); const message = document.querySelector('#formMessage'); message.className = 'form-message show success'; message.textContent = `تم حفظ الطلب ${id} في هذا المتصفح وسيظهر في لوحة الإدارة المحلية. لم يتم إرساله إلى خادم الشركة.`; requestForm.reset() } catch { const message = document.querySelector('#formMessage'); message.className = 'form-message show error'; message.textContent = 'تعذر حفظ الطلب محليًا. لم يتم إرساله إلى خادم الشركة.' }
   });
 }
+
+let activeWorkerOrder = null;
+function getWorkerOrderModal() {
+  let element = document.querySelector('#workerOrderModal');
+  if (!element) {
+    const host = document.createElement('div');
+    host.innerHTML = `<div class="modal fade worker-order-modal" id="workerOrderModal" tabindex="-1" aria-labelledby="workerOrderTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><div><span class="worker-order-eyebrow">طلب مباشر</span><h2 class="modal-title" id="workerOrderTitle">اطلب العاملة</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button></div><div class="modal-body"><div class="worker-order-summary"><img data-worker-order-image alt=""><div><strong data-worker-order-name></strong><small data-worker-order-meta></small><span data-worker-order-ref></span></div></div><p class="worker-order-copy">اتركي بياناتك، وسيتواصل معك فريق الركائز البشرية لمتابعة الطلب.</p><form id="workerOrderForm"><label class="form-label" for="workerOrderCustomerName">الاسم</label><input class="form-control" id="workerOrderCustomerName" name="name" autocomplete="name" minlength="2" maxlength="100" required><label class="form-label mt-3" for="workerOrderCustomerPhone">رقم الجوال</label><input class="form-control" id="workerOrderCustomerPhone" name="mobile" type="tel" inputmode="tel" autocomplete="tel" minlength="8" maxlength="20" required><p class="form-message" id="workerOrderMessage" role="status" aria-live="polite"></p><button class="btn btn-primary worker-order-submit" type="submit">إرسال الطلب <span aria-hidden="true">←</span></button></form></div></div></div></div>`;
+    document.body.append(host.firstElementChild);
+    element = document.querySelector('#workerOrderModal');
+  }
+  return bootstrap.Modal.getOrCreateInstance(element);
+}
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-worker-order]');
+  if (!button) return;
+  const worker = publicWorkers.find(item => item.ref === button.dataset.workerOrder);
+  if (!worker) return;
+  activeWorkerOrder = worker;
+  const modal = document.querySelector('#workerOrderModal') || (getWorkerOrderModal(), document.querySelector('#workerOrderModal'));
+  const image = modal.querySelector('[data-worker-order-image]');
+  image.src = worker.photoUrl || '';
+  image.alt = `صورة ${worker.name || 'العاملة'}`;
+  image.hidden = !worker.photoUrl;
+  modal.querySelector('[data-worker-order-name]').textContent = worker.name || 'عاملة منزلية';
+  modal.querySelector('[data-worker-order-meta]').textContent = [worker.nationality, worker.profession, worker.service].filter(Boolean).join(' · ');
+  modal.querySelector('[data-worker-order-ref]').textContent = `الرقم المرجعي ${worker.ref}`;
+  modal.querySelector('#workerOrderMessage').className = 'form-message';
+  modal.querySelector('#workerOrderMessage').textContent = '';
+  modal.querySelector('#workerOrderForm').reset();
+  getWorkerOrderModal().show();
+});
+
+document.addEventListener('submit', async event => {
+  if (event.target?.id !== 'workerOrderForm') return;
+  event.preventDefault();
+  const form = event.currentTarget;
+  if (!activeWorkerOrder || !form.reportValidity()) return;
+  const values = Object.fromEntries(new FormData(form));
+  const message = document.querySelector('#workerOrderMessage');
+  const submit = form.querySelector('[type="submit"]');
+  submit.disabled = true;
+  message.className = 'form-message show';
+  message.textContent = 'جارٍ إرسال طلبك…';
+  const id = `RQ-${Date.now().toString().slice(-6)}`;
+  const note = `طلب مباشر للعاملة ${activeWorkerOrder.name || 'عاملة منزلية'} · الرقم المرجعي ${activeWorkerOrder.ref}`;
+  try {
+    if (backend?.ready) {
+      const payload = {
+        id, customer_name: String(values.name || '').trim(), mobile: String(values.mobile || '').trim(),
+        service: activeWorkerOrder.service === 'التأجير' ? 'التأجير' : 'الاستقدام',
+        nationality: activeWorkerOrder.nationality || '', profession: activeWorkerOrder.profession || '',
+        worker_ref: activeWorkerOrder.ref, notes: note, status: 'لم يتم التواصل', assignee: null, internal_notes: ''
+      };
+      const { error } = await backend.client.from('customer_requests').insert(payload);
+      if (error) throw error;
+    } else {
+      const data = readAdminData();
+      if (!Array.isArray(data.requests)) data.requests = [];
+      data.requests.unshift({
+        id, name: String(values.name || '').trim(), mobile: String(values.mobile || '').trim(),
+        service: activeWorkerOrder.service === 'التأجير' ? 'التأجير' : 'الاستقدام',
+        preference: [activeWorkerOrder.nationality || 'بدون تفضيل', activeWorkerOrder.profession || 'المهنة غير محددة'].join(' · '),
+        date: new Date().toLocaleString('ar-SA'), status: 'لم يتم التواصل', assignee: 'غير معين', notes: note,
+        workerRef: activeWorkerOrder.ref,
+        worker: { ref: activeWorkerOrder.ref, name: activeWorkerOrder.name, photoUrl: activeWorkerOrder.photoUrl, cvPath: activeWorkerOrder.cvPath, cvFileName: activeWorkerOrder.cvFileName }
+      });
+      localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(data));
+    }
+    message.className = 'form-message show success';
+    message.textContent = `تم استلام طلبك بنجاح. رقم المتابعة ${id}.`;
+    form.reset();
+  } catch (error) {
+    console.error('Worker order request failed', error);
+    message.className = 'form-message show error';
+    message.textContent = 'تعذر إرسال الطلب الآن. تحققي من الاتصال ثم حاولي مرة أخرى.';
+  } finally {
+    submit.disabled = false;
+  }
+});
