@@ -114,7 +114,7 @@ document.addEventListener('click', event => {
 document.addEventListener('submit', async event => {
   if (event.target?.id !== 'workerOrderForm') return;
   event.preventDefault();
-  const form = event.currentTarget;
+  const form = event.target;
   if (!activeWorkerOrder || !form.reportValidity()) return;
   const values = Object.fromEntries(new FormData(form));
   const message = document.querySelector('#workerOrderMessage');
