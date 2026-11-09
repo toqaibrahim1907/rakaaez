@@ -20,6 +20,27 @@ class NameExtractorTests(unittest.TestCase):
         value, _ = extract_name("Applicant Profile — Full name: Mary Jane Doe", [])
         self.assertEqual(value, "Mary Jane Doe")
 
+    def test_common_english_name_label_synonyms(self):
+        rows = (
+            "Full Name: Mary Jane Doe",
+            "Name: Mary Jane Doe",
+            "Candidate Name: Mary Jane Doe",
+            "Applicant's Full Name: Mary Jane Doe",
+            "Worker's Name: Mary Jane Doe",
+            "Name of the Worker: Mary Jane Doe",
+            "Full Name of the Worker: Mary Jane Doe",
+            "Passport Holder Name: Mary Jane Doe",
+            "Name on Passport: Mary Jane Doe",
+        )
+        for text in rows:
+            with self.subTest(text=text):
+                value, _ = extract_name(text, [])
+                self.assertEqual(value, "Mary Jane Doe")
+
+    def test_unpunctuated_full_name_of_worker_embedded_in_text(self):
+        value, _ = extract_name("Applicant profile — Full name of the worker Mary Jane Doe", [])
+        self.assertEqual(value, "Mary Jane Doe")
+
     def test_first_and_last_name_fields_are_combined(self):
         value, _ = extract_name("First Name: Mary\nLast Name: Jane", [])
         self.assertEqual(value, "Mary Jane")

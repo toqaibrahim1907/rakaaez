@@ -160,10 +160,11 @@ def _clean_candidate_name(value: str) -> Optional[str]:
 def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str], float]:
     """Extract a worker name only when a name label or split name fields are found."""
     labels = (
-        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name",
-        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
-        r"full\s+name(?:\s+of\s+(?:candidate|worker|applicant|employee))?", r"complete\s+name",
-        r"name\s+as\s+per\s+passport", r"name",
+        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker|housekeeper)(?:['’]s)?\s+(?:full\s+)?name",
+        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker|helper|housekeeper)",
+        r"full\s+name(?:\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker))?",
+        r"complete\s+name", r"passport\s+holder(?:'s)?\s+name",
+        r"name\s+(?:as\s+per|on)\s+passport", r"name",
         r"(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)",
         r"اسم\s+(?:العاملة\s+المنزلية|العاملة|العامله|المرشحة|المرشحه|المرشح|الموظفة|الموظفه|العامل)", r"الاسم",
     )
@@ -194,9 +195,10 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
     # Requiring a delimiter avoids treating prose such as "my name is" as a field.
     anywhere_labels = (
         r"full\s+name", r"complete\s+name",
-        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
-        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name",
-        r"name\s+as\s+per\s+passport", r"name",
+        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker|helper|housekeeper)",
+        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker|housekeeper)(?:['’]s)?\s+(?:full\s+)?name",
+        r"full\s+name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
+        r"passport\s+holder(?:'s)?\s+name", r"name\s+(?:as\s+per|on)\s+passport", r"name",
         r"(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)",
         r"اسم\s+(?:العاملة\s+المنزلية|العاملة|العامله|المرشحة|المرشحه|المرشح|الموظفة|الموظفه|العامل)", r"الاسم",
     )
@@ -216,9 +218,10 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
     # Also match descriptive labels without punctuation when embedded in a line.
     # The generic label "name" is deliberately excluded here to avoid prose matches.
     inline_anywhere_pattern = re.compile(
-        r"(?i)(?<![A-Za-z\u0600-\u06FF])(?:full\s+name|complete\s+name|"
-        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)|"
-        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name|"
+        r"(?i)(?<![A-Za-z\u0600-\u06FF])(?:full\s+name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)|"
+        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker|helper|housekeeper)|"
+        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker|housekeeper)(?:['’]s)?\s+(?:full\s+)?name|"
+        r"passport\s+holder(?:'s)?\s+name|name\s+(?:as\s+per|on)\s+passport|full\s+name|complete\s+name|"
         r"(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)|"
         r"اسم\s+(?:العاملة(?:\s+المنزلية)?|العامله|المرشحة|المرشحه|الموظفة|الموظفه|العامل))"
         r"(?![A-Za-z\u0600-\u06FF])\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})"
@@ -239,7 +242,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
 
     # Some text extractors join a label and its value without punctuation.
     inline_pattern = re.compile(
-        r"(?im)^\s*(?:(?:candidate|worker|applicant|employee|maid)(?:'s)?\s+(?:full\s+)?name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid)|full\s+name|complete\s+name|name|(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)|اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
+        r"(?im)^\s*(?:(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:['’]s)?\s+(?:full\s+)?name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)|full\s+name(?:\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker))?|complete\s+name|name\s+as\s+per\s+passport|name|(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)|اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
     )
     for match in inline_pattern.finditer(text):
         candidate = _clean_candidate_name(match.group(1))
@@ -249,7 +252,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
     # Use spatially aligned OCR/native spans when line reconstruction split the value.
     for token in tokens:
         label = token.get("text", "").strip().casefold()
-        if not re.fullmatch(r"(?:full\s+name|complete\s+name|name\s+of\s+(?:the\s+)?(?:candidate|worker|employee|applicant|maid)|candidate\s+name|worker\s+name|employee\s+name|applicant\s+name|maid\s+name|name|الاسم(?:\s+(?:الكامل|كامل|الثلاثي|الرباعي))?|اسم\s+(?:العاملة(?:\s+المنزلية)?|المرشحة|العامل|الموظفة))", label, re.IGNORECASE):
+        if not re.fullmatch(r"(?:full\s+name|complete\s+name|passport\s+holder(?:'s)?\s+name|name\s+of\s+(?:the\s+)?(?:candidate|worker|employee|applicant|maid|domestic\s+worker)|(?:candidate|worker|employee|applicant|maid|domestic\s+worker)(?:['’]s)?\s+(?:full\s+)?name|name\s+(?:as\s+per|on)\s+passport|candidate\s+name|worker\s+name|employee\s+name|applicant\s+name|maid\s+name|name|الاسم(?:\s+(?:الكامل|كامل|الثلاثي|الرباعي))?|اسم\s+(?:العاملة(?:\s+المنزلية)?|المرشحة|العامل|الموظفة))", label, re.IGNORECASE):
             continue
         bbox = token.get("bbox") or (0, 0, 0, 0)
         same_line = [
