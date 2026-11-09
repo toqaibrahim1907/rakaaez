@@ -115,6 +115,12 @@ def _clean_candidate_name(value: str) -> Optional[str]:
         maxsplit=1,
         flags=re.IGNORECASE,
     )[0].strip(" \t:：|/,-–—.;")
+    # Bilingual CV tables may put a duplicate label after the actual name.
+    candidate = re.sub(
+        r"\s+(?:full\s+name|complete\s+name|(?:ا{1,2}ل(?:اسم|سم)|الاسم)(?:\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي))?|"
+        r"اسم\s+(?:العاملة(?:\s+المنزلية)?|المرشحة|الموظفة))\s*$",
+        "", candidate, flags=re.IGNORECASE,
+    ).strip(" \t:：|/,-–—.;")
     if not 2 <= len(candidate) <= 80 or re.search(r"\d", candidate):
         return None
     if not re.search(r"[A-Za-z\u0600-\u06FF]", candidate):
@@ -145,7 +151,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
         r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
         r"full\s+name(?:\s+of\s+(?:candidate|worker|applicant|employee))?", r"complete\s+name",
         r"name\s+as\s+per\s+passport", r"name",
-        r"الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)",
+        r"(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)",
         r"اسم\s+(?:العاملة\s+المنزلية|العاملة|العامله|المرشحة|المرشحه|المرشح|الموظفة|الموظفه|العامل)", r"الاسم",
     )
     label_pattern = re.compile(r"^(?:\d+[.)-]?\s*)?(?:" + "|".join(labels) + r")(?=\s|[:：=|/,-]|$)", re.IGNORECASE)
@@ -178,7 +184,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
         r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
         r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name",
         r"name\s+as\s+per\s+passport", r"name",
-        r"الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)",
+        r"(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)",
         r"اسم\s+(?:العاملة\s+المنزلية|العاملة|العامله|المرشحة|المرشحه|المرشح|الموظفة|الموظفه|العامل)", r"الاسم",
     )
     anywhere_pattern = re.compile(
@@ -186,6 +192,9 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
         r")(?![A-Za-z\u0600-\u06FF])\s*[:：=–—-]\s*"
     )
     for match in anywhere_pattern.finditer(text):
+        prefix = text[:match.start()]
+        if re.search(r"(?i)(?:first|given|last|family|sur)\s*$", prefix) or re.search(r"(?:الاسم\s+الأول|الاسم\s+الاول|اسم\s+العائلة)\s*$", prefix):
+            continue
         remainder = text[match.end():].splitlines()[0] if text[match.end():].splitlines() else ""
         candidate = _clean_candidate_name(remainder)
         if candidate:
@@ -197,7 +206,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
         r"(?i)(?<![A-Za-z\u0600-\u06FF])(?:full\s+name|complete\s+name|"
         r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)|"
         r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name|"
-        r"الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)|"
+        r"(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)|"
         r"اسم\s+(?:العاملة(?:\s+المنزلية)?|العامله|المرشحة|المرشحه|الموظفة|الموظفه|العامل))"
         r"(?![A-Za-z\u0600-\u06FF])\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})"
     )
@@ -217,7 +226,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
 
     # Some text extractors join a label and its value without punctuation.
     inline_pattern = re.compile(
-        r"(?im)^\s*(?:(?:candidate|worker|applicant|employee|maid)(?:'s)?\s+(?:full\s+)?name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid)|full\s+name|complete\s+name|name|الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)|اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
+        r"(?im)^\s*(?:(?:candidate|worker|applicant|employee|maid)(?:'s)?\s+(?:full\s+)?name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid)|full\s+name|complete\s+name|name|(?:ا{1,2}ل(?:اسم|سم)|الاسم)\s+(?:بالكامل|الكامل|كامل|الثلاثي|الرباعي)|اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
     )
     for match in inline_pattern.finditer(text):
         candidate = _clean_candidate_name(match.group(1))

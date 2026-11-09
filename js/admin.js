@@ -292,7 +292,7 @@
       const preview = document.querySelector('[data-worker-photo-preview]');
       const photoUrl = preview && !preview.hidden ? preview.src : '';
       const logoUrl = new URL('../assets/images/logo-mark-refined.png', document.baseURI).href;
-      if (typeof window.html2pdf !== 'function') { toast('تعذر تحميل أداة إنشاء PDF. حدّثي الصفحة ثم حاولي مرة أخرى.'); return; }
+      if (typeof window.html2canvas !== 'function' || typeof window.jspdf?.jsPDF !== 'function') { toast('تعذر تحميل أدوات إنشاء PDF. حدّثي الصفحة ثم حاولي مرة أخرى.'); return; }
       const button = document.querySelector('#workerProfilePdfButton');
       const originalLabel = button?.textContent || '';
       if (button) { button.disabled = true; button.textContent = 'جارٍ تجهيز التنزيل…'; }
@@ -310,21 +310,42 @@
       document.body.append(sheet);
       try {
         await Promise.all([...sheet.querySelectorAll('img')].map(image => image.decode().catch(() => {})));
-        await window.html2pdf().set({
-          margin: [8, 9, 8, 9],
-          filename: `alrakayiz-${(value('ref') || 'worker').replace(/[^a-z0-9_-]/gi, '-')}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: {
-            scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0,
-            windowWidth: Math.max(1200, sheet.scrollWidth), windowHeight: Math.max(1200, sheet.scrollHeight),
-            onclone: clonedDocument => {
-              const clonedSheet = clonedDocument.querySelector('.worker-profile-pdf');
-              if (clonedSheet) Object.assign(clonedSheet.style, { position: 'static', left: 'auto', top: 'auto', zIndex: 'auto', transform: 'none' });
-            },
+        await document.fonts?.ready;
+        const canvas = await window.html2canvas(sheet, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: Math.max(1200, document.documentElement.clientWidth, sheet.scrollWidth),
+          windowHeight: Math.max(1200, document.documentElement.clientHeight, sheet.scrollHeight),
+          onclone: clonedDocument => {
+            const clonedSheet = clonedDocument.querySelector('.worker-profile-pdf');
+              if (clonedSheet) Object.assign(clonedSheet.style, {
+                position: 'fixed', left: '0', top: '0', zIndex: 'auto',
+                transform: 'none', margin: '0', pointerEvents: 'auto',
+              });
           },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'] },
-        }).from(sheet).save();
+        });
+        if (!canvas.width || !canvas.height) throw new Error('empty_pdf_canvas');
+        // Refuse to download a blank PDF if the browser could not paint the
+        // profile contents into the canvas.
+        const pixels = canvas.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data;
+        let paintedPixels = 0;
+        if (pixels) for (let i = 0; i < pixels.length; i += 64) {
+          if (pixels[i] < 245 || pixels[i + 1] < 245 || pixels[i + 2] < 245) paintedPixels++;
+        }
+        if (paintedPixels < 100) throw new Error('blank_pdf_canvas');
+        const pdf = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
+        const margin = 9;
+        const maxWidth = pdf.internal.pageSize.getWidth() - margin * 2;
+        const maxHeight = pdf.internal.pageSize.getHeight() - margin * 2;
+        const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
+        const imageWidth = canvas.width * ratio;
+        const imageHeight = canvas.height * ratio;
+        const imageX = (pdf.internal.pageSize.getWidth() - imageWidth) / 2;
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.97), 'JPEG', imageX, margin, imageWidth, imageHeight, undefined, 'FAST');
+        pdf.save(`alrakayiz-${(value('ref') || 'worker').replace(/[^a-z0-9_-]/gi, '-')}.pdf`);
         toast('تم تنزيل ملف PDF.');
       } catch (error) {
         console.error('Worker profile PDF download failed', error);
