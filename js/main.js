@@ -148,8 +148,9 @@ document.addEventListener('submit', async event => {
       localStorage.setItem(ADMIN_STORAGE_KEY, JSON.stringify(data));
     }
     message.className = 'form-message show success';
-    message.textContent = `تم استلام طلبك بنجاح. رقم المتابعة ${id}.`;
+    message.textContent = 'تم استلام طلبك بنجاح، وسيتواصل معك فريق الركائز البشرية قريبًا.';
     form.reset();
+    window.setTimeout(() => getWorkerOrderModal().hide(), 1200);
   } catch (error) {
     console.error('Worker order request failed', error);
     message.className = 'form-message show error';
