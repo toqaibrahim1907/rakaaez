@@ -19,7 +19,7 @@
   };
 
   function blankResult() {
-    return { fields: { salary: null, nationality: null, religion: null, age: null, job: null, passport_number: null, experience: null }, raw_fields: {}, confidence: {}, warnings: [], photos: [], selected_photo: null };
+    return { fields: { name: null, salary: null, nationality: null, religion: null, age: null, job: null, passport_number: null, experience: null }, raw_fields: {}, confidence: {}, warnings: [], photos: [], selected_photo: null };
   }
 
   function validPdfHeader(bytes) {

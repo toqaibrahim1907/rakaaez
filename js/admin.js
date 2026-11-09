@@ -172,7 +172,7 @@
     function renderWorkers() { const q = (search.value || '').trim().toLowerCase(); const rows = state.workers.filter(w => (!q || `${w.ref} ${w.name || ''} ${w.nationality}`.toLowerCase().includes(q)) && (!service.value || w.service === service.value) && (!availability.value || w.availability === availability.value) && (!publication.value || w.publication === publication.value)); document.querySelector('[data-worker-count]').textContent = `${rows.length} من ${state.workers.length} ملفات`; workerBody.innerHTML = rows.length ? rows.map(w => `<tr><td class="record-id">${esc(w.ref)}</td><td><span class="cell-title">${esc(w.service)}</span></td><td>${esc(w.nationality || 'تحتاج مراجعة')}</td><td>${esc(w.profession || 'عاملة منزلية')}</td><td><span class="status-badge ${badgeClass(w.availability)}">${esc(w.availability)}</span></td><td><span class="status-badge ${w.publication === 'منشورة' ? 'status-available' : 'status-draft'}">${esc(w.publication)}</span></td><td><div class="row-actions">${currentAccess?.profile.role === 'admin' ? (w.publication === 'مسودة' ? `<button class="row-action" data-worker-edit="${esc(w.ref)}">مراجعة المسودة</button>` : '—') : `<button class="row-action" data-worker-edit="${esc(w.ref)}">تعديل</button><button class="row-action" data-worker-availability="${esc(w.ref)}">${w.availability === 'متاحة' ? 'تم الحجز' : 'إتاحة'}</button><button class="row-action" data-worker-publish="${esc(w.ref)}">${w.publication === 'منشورة' ? 'إلغاء النشر' : 'نشر'}</button><button class="row-action" data-worker-archive="${esc(w.ref)}">أرشفة</button>`}</div></td></tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><strong>لا توجد نتائج</strong>جرّب تغيير خيارات التصفية.</div></td></tr>' }
     refreshWorkers = renderWorkers;
     [search, service, availability, publication].forEach(el => el?.addEventListener('input', renderWorkers));[service, availability, publication].forEach(el => el?.addEventListener('change', renderWorkers));
-    workerBody.addEventListener('click', event => { const editButton = event.target.closest('[data-worker-edit]'), availabilityButton = event.target.closest('[data-worker-availability]'), publishButton = event.target.closest('[data-worker-publish]'), archiveButton = event.target.closest('[data-worker-archive]'); const button = editButton || availabilityButton || publishButton || archiveButton, ref = button?.dataset.workerEdit || button?.dataset.workerAvailability || button?.dataset.workerPublish || button?.dataset.workerArchive; if (!ref) return; const worker = state.workers.find(w => w.ref === ref); if (!worker) return; if (editButton) { const form = document.querySelector('#workerForm'); document.querySelector('#workerEditRef').value = worker.ref; form.elements.namedItem('availability').disabled = currentAccess?.profile.role === 'admin'; form.elements.namedItem('publication').disabled = currentAccess?.profile.role === 'admin';['ref', 'name', 'service', 'nationality', 'profession', 'age', 'experience', 'salary', 'religion', 'passportNumber', 'totalRecruitmentCost', 'languages', 'skills', 'availability', 'publication'].forEach(key => { const field = form.elements.namedItem(key); if (field) field.value = worker[key] ?? '' }); const photoPreview = document.querySelector('[data-worker-photo-preview]'); if (photoPreview) { photoPreview.src = worker.photoUrl || ''; photoPreview.hidden = !worker.photoUrl } document.querySelector('#workerModalTitle').textContent = `مراجعة بيانات ${worker.ref}`; document.querySelector('#workerFormSubmit').textContent = 'حفظ التعديلات'; bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).show(); return } if (availabilityButton) { worker.availability = worker.availability === 'متاحة' ? 'تم الحجز' : 'متاحة'; saveState(); toast(worker.availability === 'تم الحجز' ? 'تم الحجز وإخفاء البطاقة من الموقع.' : 'أصبحت متاحة وستظهر في الموقع إذا كانت منشورة.') } else if (publishButton) { if (worker.publication !== 'منشورة' && (!worker.photoPath || !worker.name || !worker.age || !worker.nationality || worker.nationality === 'تحتاج مراجعة' || String(worker.experience ?? '').trim() === '' || !Number(worker.totalRecruitmentCost))) { toast('أكمل الصورة والاسم والعمر والجنسية والخبرة وسعر الاستقدام قبل النشر.'); return } worker.publication = worker.publication === 'منشورة' ? 'مسودة' : 'منشورة'; saveState(); toast('تم تحديث حالة النشر.') } else { worker.availability = 'مؤرشفة'; worker.publication = 'مسودة'; saveState(); toast('تمت أرشفة الملف.') } renderWorkers() });
+    workerBody.addEventListener('click', event => { const editButton = event.target.closest('[data-worker-edit]'), availabilityButton = event.target.closest('[data-worker-availability]'), publishButton = event.target.closest('[data-worker-publish]'), archiveButton = event.target.closest('[data-worker-archive]'); const button = editButton || availabilityButton || publishButton || archiveButton, ref = button?.dataset.workerEdit || button?.dataset.workerAvailability || button?.dataset.workerPublish || button?.dataset.workerArchive; if (!ref) return; const worker = state.workers.find(w => w.ref === ref); if (!worker) return; if (editButton) { document.querySelector('#workerProfilePdfButton').hidden = true; activeCvUpload = null; const form = document.querySelector('#workerForm'); document.querySelector('#workerEditRef').value = worker.ref; form.elements.namedItem('availability').disabled = currentAccess?.profile.role === 'admin'; form.elements.namedItem('publication').disabled = currentAccess?.profile.role === 'admin';['ref', 'name', 'service', 'nationality', 'profession', 'age', 'experience', 'salary', 'religion', 'passportNumber', 'totalRecruitmentCost', 'languages', 'skills', 'availability', 'publication'].forEach(key => { const field = form.elements.namedItem(key); if (field) field.value = worker[key] ?? '' }); const photoPreview = document.querySelector('[data-worker-photo-preview]'); if (photoPreview) { photoPreview.src = worker.photoUrl || ''; photoPreview.hidden = !worker.photoUrl } document.querySelector('#workerModalTitle').textContent = `مراجعة بيانات ${worker.ref}`; document.querySelector('#workerFormSubmit').textContent = 'حفظ التعديلات'; bootstrap.Modal.getOrCreateInstance(document.querySelector('#workerModal')).show(); return } if (availabilityButton) { worker.availability = worker.availability === 'متاحة' ? 'تم الحجز' : 'متاحة'; saveState(); toast(worker.availability === 'تم الحجز' ? 'تم الحجز وإخفاء البطاقة من الموقع.' : 'أصبحت متاحة وستظهر في الموقع إذا كانت منشورة.') } else if (publishButton) { if (worker.publication !== 'منشورة' && (!worker.photoPath || !worker.name || !worker.age || !worker.nationality || worker.nationality === 'تحتاج مراجعة' || String(worker.experience ?? '').trim() === '' || !Number(worker.totalRecruitmentCost))) { toast('أكمل الصورة والاسم والعمر والجنسية والخبرة وسعر الاستقدام قبل النشر.'); return } worker.publication = worker.publication === 'منشورة' ? 'مسودة' : 'منشورة'; saveState(); toast('تم تحديث حالة النشر.') } else { worker.availability = 'مؤرشفة'; worker.publication = 'مسودة'; saveState(); toast('تمت أرشفة الملف.') } renderWorkers() });
     document.querySelector('#workerPhotoFile')?.addEventListener('change', event => { const file = event.target.files?.[0], preview = document.querySelector('[data-worker-photo-preview]'); if (!file || !preview) return; if (!file.type.startsWith('image/')) { event.target.value = ''; return } preview.src = URL.createObjectURL(file); preview.hidden = false });
     function imageBlobFromBase64(value) {
       const binary = atob(value || '');
@@ -195,7 +195,7 @@
       clearExtractionHints();
       const form = document.querySelector('#workerForm');
       const fieldMap = {
-        salary: ['salary', 'workerSalary'], nationality: ['nationality', 'workerNationality'],
+        name: ['name', 'workerName'], salary: ['salary', 'workerSalary'], nationality: ['nationality', 'workerNationality'],
         religion: ['religion', 'workerReligion'], age: ['age', 'workerAge'],
         job: ['profession', 'workerProfession'], passport_number: ['passportNumber', 'workerPassport'],
         experience: ['experience', 'workerExperience']
@@ -216,7 +216,7 @@
         wrapper.classList.toggle('needs-review', low);
         hint.classList.toggle('low', low);
       });
-      form.elements.namedItem('name').value = '';
+      form.elements.namedItem('name').value = pending.fields?.name || '';
       form.elements.namedItem('service').value = 'الاستقدام';
       form.elements.namedItem('ref').value = pending.ref;
       form.elements.namedItem('availability').value = 'متاحة';
@@ -232,7 +232,7 @@
       if (pending.extractionError) notes.push(pending.extractionError);
       else if (!pending.extracted) notes.push('لم تظهر بيانات كافية في الملف. الحقول غير المكتشفة بقيت فارغة.');
       (pending.warnings || []).forEach(note => notes.push(note));
-      if (!String(form.elements.namedItem('name').value || '').trim()) notes.push('اسم المرشحة غير موجود ضمن الحقول التي يستخرجها المحرك؛ أدخليه يدويًا.');
+      if (!String(form.elements.namedItem('name').value || '').trim()) notes.push('لم يُكتشف اسم واضح؛ راجعي السيرة وأدخليه يدويًا.');
       if (notes.length) {
         const list = document.createElement('ul');
         notes.forEach(note => { const item = document.createElement('li'); item.textContent = note; list.append(item); });
@@ -272,7 +272,42 @@
         const chosen = validPhotos.find(photo => photo.id === pending.selectedPhotoId);
         if (chosen) { preview.src = 'data:image/jpeg;base64,' + chosen.data; preview.hidden = false; }
       }
+      const pdfButton = document.querySelector('#workerProfilePdfButton');
+      if (pdfButton) pdfButton.hidden = false;
     }
+
+    function downloadWorkerProfilePdf() {
+      const form = document.querySelector('#workerForm');
+      if (!form) return;
+      const value = name => String(form.elements.namedItem(name)?.value || '').trim();
+      const escapeHtml = input => String(input || '—').replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
+      const fields = [
+        ['الاسم', value('name')], ['الجنسية', value('nationality')], ['المهنة', value('profession')],
+        ['العمر', value('age')], ['الخبرة', value('experience') ? `${value('experience')} سنة` : '—'],
+        ['الديانة', value('religion')], ['الراتب', value('salary') ? `${value('salary')} ريال` : '—'],
+        ['إجمالي سعر الاستقدام', value('totalRecruitmentCost') ? `${value('totalRecruitmentCost')} ريال` : '—'],
+        ['نوع الخدمة', value('service')], ['اللغات', value('languages')], ['المهارات', value('skills')],
+        ['الرقم المرجعي', value('ref')],
+      ];
+      const preview = document.querySelector('[data-worker-photo-preview]');
+      const photoUrl = preview && !preview.hidden ? preview.src : '';
+      const logoUrl = new URL('../assets/images/logo-mark-refined.png', document.baseURI).href;
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) { toast('اسمحي بالنوافذ المنبثقة لتنزيل بطاقة PDF.'); return; }
+      const rows = fields.map(([label, fieldValue]) => `<div class="field"><small>${escapeHtml(label)}</small><strong>${escapeHtml(fieldValue)}</strong></div>`).join('');
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ملف ${escapeHtml(value('name'))} - الركائز البشرية</title><style>
+        @page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#17364b;font-family:"Cairo",Tahoma,Arial,sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{max-width:780px;margin:0 auto;border:1px solid #dceaf1;border-radius:22px;overflow:hidden}.brand{display:flex;align-items:center;gap:18px;padding:22px 26px;background:linear-gradient(115deg,#0b6fa6,#123b59);color:#fff}.brand img{width:76px;height:76px;object-fit:contain;padding:7px;border-radius:15px;background:#fff}.brand h1{margin:0 0 5px;font-size:21px}.brand p{margin:0;color:#d9edf6;font-size:12px}.content{padding:24px 26px}.profile{display:flex;align-items:center;gap:18px;margin-bottom:22px;padding:16px;border-radius:17px;background:#f1f8fb}.profile img{width:108px;height:122px;object-fit:cover;object-position:center 25%;border-radius:14px;background:#e2eef4}.profile h2{margin:0 0 7px;font-size:21px;color:#123b59}.profile span{color:#547487;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{min-height:66px;padding:12px 14px;border:1px solid #e2edf2;border-radius:12px;background:#fff;break-inside:avoid}.field small{display:block;margin-bottom:5px;color:#718a99;font-size:10px}.field strong{display:block;color:#183c53;font-size:13px;overflow-wrap:anywhere}.footer{margin-top:20px;padding-top:12px;border-top:1px solid #e3edf2;color:#7690a0;font-size:10px;text-align:center}.confidential{color:#1676a8;font-size:10px;font-weight:700}@media print{body{background:#fff}.sheet{max-width:none;border-color:#cbdde6}.content{padding:18px}.brand{padding:17px 20px}.profile img{width:96px;height:110px}}</style></head><body><main class="sheet"><header class="brand"><img src="${escapeHtml(logoUrl)}" alt="شعار الشركة"><div><h1>الركائز البشرية للاستقدام</h1><p>ملف بيانات العاملة المنزلية</p></div></header><section class="content"><div class="profile">${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="صورة المرشحة">` : ''}<div><h2>${escapeHtml(value('name'))}</h2><span>${escapeHtml([value('nationality'), value('profession')].filter(Boolean).join(' · '))}</span><p class="confidential">نسخة بيانات للمراجعة الداخلية</p></div></div><div class="grid">${rows}</div><footer class="footer">شركة الركائز البشرية للاستقدام · ${new Intl.DateTimeFormat('ar-SA', { dateStyle: 'long' }).format(new Date())}</footer></section></main></body></html>`);
+      printWindow.document.close();
+      printWindow.onload = async () => {
+        await Promise.all([...printWindow.document.images].map(image => image.decode().catch(() => {})));
+        printWindow.focus();
+        printWindow.print();
+      };
+      printWindow.onafterprint = () => printWindow.close();
+    }
+
+    document.querySelector('#workerProfilePdfButton')?.addEventListener('click', downloadWorkerProfilePdf);
 
     document.querySelector('#workerPhotoCandidates')?.addEventListener('click', event => {
       const button = event.target.closest('[data-photo-candidate]');
@@ -411,6 +446,7 @@
         refreshCvRecords();
         status.textContent = 'تم حفظ المسودة ' + pending.ref + (pending.extractionError ? '؛ يمكنك استكمال البيانات يدويًا.' : ' بعد مراجعتك.');
         activeCvUpload = null;
+        document.querySelector('#workerProfilePdfButton').hidden = true;
         form.reset();
         clearExtractionHints();
         document.querySelector('#workerPhotoFile').value = '';
@@ -434,6 +470,7 @@
     cvInput.addEventListener('change', async () => {
       const file = cvInput.files?.[0];
       if (!file) return;
+      document.querySelector('#workerProfilePdfButton').hidden = true;
       const status = document.querySelector('#cvProcessingStatus');
       const stamp = Date.now();
       try {
@@ -456,8 +493,8 @@
           await cvDbAction('put', { id: cvId, fileName: file.name, blob: file, photoBlob: localPhotoBlob });
           pending = {
             ref, cvId, fileName: file.name, file, cloud: false, cvPath: '', extracted: false,
-            fields: { salary: '', nationality: localFields.nationality || '', religion: '', age: localFields.age || '', job: localFields.profession || '', passport_number: '', experience: localFields.experience || '' },
-            rawFields: { salary: '', nationality: localFields.nationality || '', religion: '', age: localFields.age || '', job: localFields.profession || '', passport_number: '', experience: localFields.experience || '' },
+            fields: { name: localFields.name || '', salary: '', nationality: localFields.nationality || '', religion: '', age: localFields.age || '', job: localFields.profession || '', passport_number: '', experience: localFields.experience || '' },
+            rawFields: { name: localFields.name || '', salary: '', nationality: localFields.nationality || '', religion: '', age: localFields.age || '', job: localFields.profession || '', passport_number: '', experience: localFields.experience || '' },
             confidence: {}, warnings: [], photos: [], selectedPhotoId: '', localPhotoBlob,
             extractionError: 'تحليل Python يحتاج نشر خدمة الاستخراج وربط حساب موظف. راجعي القيم أو أدخليها يدويًا.'
           };

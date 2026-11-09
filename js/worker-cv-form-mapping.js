@@ -1,6 +1,6 @@
 (() => {
   const FIELD_IDS = {
-    salary: 'workerSalary', nationality: 'workerNationality', religion: 'workerReligion',
+    name: 'workerName', salary: 'workerSalary', nationality: 'workerNationality', religion: 'workerReligion',
     age: 'workerAge', job: 'workerProfession', passport_number: 'workerPassport',
     experience: 'workerExperience'
   };

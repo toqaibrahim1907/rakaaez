@@ -1,13 +1,14 @@
 """
 Stage D: Intelligent Multilingual Field Matching.
-Extracts the seven required fields:
-1. Salary (الراتب)
-2. Nationality (الجنسية)
-3. Religion (الديانة)
-4. Age (العمر)
-5. Job / Position (الوظيفة)
-6. Passport Number (رقم الجواز)
-7. Experience (الخبرة)
+Extracts the worker name and seven profile fields:
+1. Name (الاسم)
+2. Salary (الراتب)
+3. Nationality (الجنسية)
+4. Religion (الديانة)
+5. Age (العمر)
+6. Job / Position (الوظيفة)
+7. Passport Number (رقم الجواز)
+8. Experience (الخبرة)
 
 Uses spatial proximity, tabular row/column alignment, regex patterns,
 and cross-field validation. Returns None if unconfident.
@@ -102,6 +103,87 @@ def strip_adjacent_labels(value: str) -> str:
             pattern = rf"(?i)(?:\b|_){re.escape(label)}(?:\b|_)|{re.escape(label)}"
             value = re.sub(pattern, "", value)
     return clean_field_value(value)
+
+
+def _clean_candidate_name(value: str) -> Optional[str]:
+    """Reject labels and unrelated profile fields before accepting a name."""
+    candidate = re.sub(r"\s+", " ", value).strip(" \t:：|/,-–—.;")
+    # A few CVs print several fields on the same line; keep only the name part.
+    candidate = re.split(
+        r"\s+(?=(?:nationality|religion|date\s+of\s+birth|passport(?:\s+(?:number|no))?|age|profession|occupation|experience|الجنسية|الديانة|الدين|العمر|السن|رقم\s+الجواز|المهنة)\s*[:：=])",
+        candidate,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" \t:：|/,-–—.;")
+    if not 2 <= len(candidate) <= 80 or re.search(r"\d", candidate):
+        return None
+    if not re.search(r"[A-Za-z\u0600-\u06FF]", candidate):
+        return None
+    rejected = {
+        "name", "full name", "candidate name", "applicant name", "worker name",
+        "personal details", "curriculum vitae", "resume", "passport details",
+        "nationality", "religion", "date of birth", "marital status", "single", "married",
+        "الاسم", "الاسم الكامل", "اسم العاملة", "اسم المرشحة", "البيانات الشخصية",
+        "السيرة الذاتية", "الجنسية", "الديانة", "العمر", "رقم الجواز",
+    }
+    if candidate.casefold() in rejected:
+        return None
+    return candidate
+
+
+def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str], float]:
+    """Extract a candidate name only when it follows an explicit name label."""
+    labels = (
+        r"full\s+name", r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant)",
+        r"(?:candidate|worker|applicant)(?:'s)?\s+name", r"name",
+        r"الاسم\s+(?:الكامل|الرباعي)", r"اسم\s+(?:العاملة|المرشحة|المرشح|الموظفة|العامل)", r"الاسم",
+    )
+    label_pattern = re.compile(r"^(?:\d+[.)-]?\s*)?(?:" + "|".join(labels) + r")(?=\s|[:：=|/,-]|$)", re.IGNORECASE)
+    # Keep physical lines separate so labels with a value on the following line work too.
+    lines = [re.sub(r"[\t\u00a0]+", " ", line).strip() for line in text.splitlines()]
+    for index, line in enumerate(lines):
+        if not line:
+            continue
+        match = label_pattern.match(line)
+        if not match:
+            continue
+        remainder = line[match.end():].strip(" \t:：=|/,-–—")
+        if remainder:
+            candidate = _clean_candidate_name(remainder)
+            if candidate:
+                return candidate, 0.95
+        for following in lines[index + 1:index + 3]:
+            if not following:
+                continue
+            candidate = _clean_candidate_name(following)
+            if candidate:
+                return candidate, 0.84
+            break
+
+    # Some text extractors join a label and its value without punctuation.
+    inline_pattern = re.compile(
+        r"(?im)^\s*(?:full\s+name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant)|(?:candidate|worker|applicant)(?:'s)?\s+name|name|الاسم\s+(?:الكامل|الرباعي)|اسم\s+(?:العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
+    )
+    for match in inline_pattern.finditer(text):
+        candidate = _clean_candidate_name(match.group(1))
+        if candidate:
+            return candidate, 0.82
+
+    # Use spatially aligned OCR/native spans when line reconstruction split the value.
+    for token in tokens:
+        label = token.get("text", "").strip().casefold()
+        if not re.fullmatch(r"(?:full\s+name|candidate\s+name|worker\s+name|applicant\s+name|name|الاسم|اسم\s+(?:العاملة|المرشحة|العامل))", label, re.IGNORECASE):
+            continue
+        bbox = token.get("bbox") or (0, 0, 0, 0)
+        same_line = [
+            other for other in tokens
+            if other is not token and abs((other.get("bbox") or (0, 0, 0, 0))[1] - bbox[1]) <= 8
+        ]
+        same_line.sort(key=lambda item: (item.get("bbox") or (0, 0, 0, 0))[0])
+        candidate = _clean_candidate_name(" ".join(item.get("text", "") for item in same_line))
+        if candidate:
+            return candidate, 0.72
+    return None, 0.0
 
 
 def extract_salary(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str], float]:
@@ -349,8 +431,9 @@ def extract_experience(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optiona
 
 def extract_all_fields(full_text: str, tokens: List[Dict[str, Any]]) -> Dict[str, Any]:
     """
-    Extracts all seven required fields with confidence scores.
+    Extracts the name and profile fields with confidence scores.
     """
+    name, conf_name = extract_name(full_text, tokens)
     salary, conf_salary = extract_salary(full_text, tokens)
     nationality, conf_nat = extract_nationality(full_text, tokens)
     religion, conf_rel = extract_religion(full_text, tokens)
@@ -361,6 +444,7 @@ def extract_all_fields(full_text: str, tokens: List[Dict[str, Any]]) -> Dict[str
 
     return {
         "fields": {
+            "name": name,
             "salary": salary,
             "nationality": nationality,
             "religion": religion,
@@ -370,6 +454,7 @@ def extract_all_fields(full_text: str, tokens: List[Dict[str, Any]]) -> Dict[str
             "experience": experience,
         },
         "confidence": {
+            "name": round(conf_name, 2),
             "salary": round(conf_salary, 2),
             "nationality": round(conf_nat, 2),
             "religion": round(conf_rel, 2),

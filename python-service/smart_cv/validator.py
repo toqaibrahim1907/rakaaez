@@ -23,6 +23,14 @@ def validate_extraction(
     confidence = dict(raw_data.get("confidence", {}))
     warnings: List[str] = []
 
+    # Names are extracted only from explicit labels; never infer them from the file name.
+    name = fields.get("name")
+    if name:
+        fields["name"] = re.sub(r"\s+", " ", str(name)).strip()[:80] or None
+    else:
+        fields["name"] = None
+        confidence["name"] = 0.0
+
     # 1. Salary Validation
     salary = fields.get("salary")
     if salary:
@@ -114,6 +122,7 @@ def validate_extraction(
             )
 
     return {
+        "name": fields.get("name"),
         "salary": fields.get("salary"),
         "nationality": fields.get("nationality"),
         "religion": fields.get("religion"),
@@ -123,6 +132,7 @@ def validate_extraction(
         "experience": fields.get("experience"),
         "worker_photo": worker_photo,
         "confidence": {
+            "name": confidence.get("name", 0.0),
             "salary": confidence.get("salary", 0.0),
             "nationality": confidence.get("nationality", 0.0),
             "religion": confidence.get("religion", 0.0),

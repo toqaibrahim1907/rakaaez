@@ -113,7 +113,7 @@ def process_pdf(raw_pdf: bytes, filename: str) -> dict[str, Any]:
         result = parser.parse(str(pdf_path), save_json=False)
 
         extracted_fields = {key: result.get(key) for key in (
-            "salary", "nationality", "religion", "age", "job", "passport_number", "experience"
+            "name", "salary", "nationality", "religion", "age", "job", "passport_number", "experience"
         )}
         normalized = normalize_extracted_fields(extracted_fields)
         fields = normalized["fields"]
@@ -175,7 +175,7 @@ def process_pdf(raw_pdf: bytes, filename: str) -> dict[str, Any]:
             "fields": fields,
             "raw_fields": raw_fields,
             "confidence": {key: float(confidence.get(key) or 0) for key in (
-                "salary", "nationality", "religion", "age", "job", "passport_number", "experience", "worker_photo"
+                "name", "salary", "nationality", "religion", "age", "job", "passport_number", "experience", "worker_photo"
             )},
             "warnings": warnings[:12],
             "photos": photos,

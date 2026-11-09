@@ -123,10 +123,12 @@ def _experience(value: str | None) -> int | float | None:
 def normalize_extracted_fields(extracted: dict[str, Any]) -> dict[str, Any]:
     """Return Arabic/typed field values and a parallel raw-value dictionary."""
     raw_fields = {key: _raw(extracted.get(key)) for key in (
-        "nationality", "religion", "experience", "salary", "age", "job", "passport_number"
+        "name", "nationality", "religion", "experience", "salary", "age", "job", "passport_number"
     )}
     fields: dict[str, Any] = dict(extracted)
     unmapped: list[str] = []
+
+    fields["name"] = re.sub(r"\s+", " ", raw_fields["name"]).strip() if raw_fields["name"] else None
 
     nationality_raw = raw_fields["nationality"]
     nationality_key = _key(nationality_raw) if nationality_raw else ""
