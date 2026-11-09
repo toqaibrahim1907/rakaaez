@@ -276,7 +276,7 @@
       if (pdfButton) pdfButton.hidden = false;
     }
 
-    function downloadWorkerProfilePdf() {
+    async function downloadWorkerProfilePdf() {
       const form = document.querySelector('#workerForm');
       if (!form) return;
       const value = name => String(form.elements.namedItem(name)?.value || '').trim();
@@ -292,19 +292,37 @@
       const preview = document.querySelector('[data-worker-photo-preview]');
       const photoUrl = preview && !preview.hidden ? preview.src : '';
       const logoUrl = new URL('../assets/images/logo-mark-refined.png', document.baseURI).href;
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) { toast('اسمحي بالنوافذ المنبثقة لتنزيل بطاقة PDF.'); return; }
-      const rows = fields.map(([label, fieldValue]) => `<div class="field"><small>${escapeHtml(label)}</small><strong>${escapeHtml(fieldValue)}</strong></div>`).join('');
-      printWindow.document.open();
-      printWindow.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ملف ${escapeHtml(value('name'))} - الركائز البشرية</title><style>
-        @page{size:A4;margin:14mm}*{box-sizing:border-box}body{margin:0;color:#17364b;font-family:"Cairo",Tahoma,Arial,sans-serif;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sheet{max-width:780px;margin:0 auto;border:1px solid #dceaf1;border-radius:22px;overflow:hidden}.brand{display:flex;align-items:center;gap:18px;padding:22px 26px;background:linear-gradient(115deg,#0b6fa6,#123b59);color:#fff}.brand img{width:76px;height:76px;object-fit:contain;padding:7px;border-radius:15px;background:#fff}.brand h1{margin:0 0 5px;font-size:21px}.brand p{margin:0;color:#d9edf6;font-size:12px}.content{padding:24px 26px}.profile{display:flex;align-items:center;gap:18px;margin-bottom:22px;padding:16px;border-radius:17px;background:#f1f8fb}.profile img{width:108px;height:122px;object-fit:cover;object-position:center 25%;border-radius:14px;background:#e2eef4}.profile h2{margin:0 0 7px;font-size:21px;color:#123b59}.profile span{color:#547487;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{min-height:66px;padding:12px 14px;border:1px solid #e2edf2;border-radius:12px;background:#fff;break-inside:avoid}.field small{display:block;margin-bottom:5px;color:#718a99;font-size:10px}.field strong{display:block;color:#183c53;font-size:13px;overflow-wrap:anywhere}.footer{margin-top:20px;padding-top:12px;border-top:1px solid #e3edf2;color:#7690a0;font-size:10px;text-align:center}.confidential{color:#1676a8;font-size:10px;font-weight:700}@media print{body{background:#fff}.sheet{max-width:none;border-color:#cbdde6}.content{padding:18px}.brand{padding:17px 20px}.profile img{width:96px;height:110px}}</style></head><body><main class="sheet"><header class="brand"><img src="${escapeHtml(logoUrl)}" alt="شعار الشركة"><div><h1>الركائز البشرية للاستقدام</h1><p>ملف بيانات العاملة المنزلية</p></div></header><section class="content"><div class="profile">${photoUrl ? `<img src="${escapeHtml(photoUrl)}" alt="صورة المرشحة">` : ''}<div><h2>${escapeHtml(value('name'))}</h2><span>${escapeHtml([value('nationality'), value('profession')].filter(Boolean).join(' · '))}</span><p class="confidential">نسخة بيانات للمراجعة الداخلية</p></div></div><div class="grid">${rows}</div><footer class="footer">شركة الركائز البشرية للاستقدام · ${new Intl.DateTimeFormat('ar-SA', { dateStyle: 'long' }).format(new Date())}</footer></section></main></body></html>`);
-      printWindow.document.close();
-      printWindow.onload = async () => {
-        await Promise.all([...printWindow.document.images].map(image => image.decode().catch(() => {})));
-        printWindow.focus();
-        printWindow.print();
-      };
-      printWindow.onafterprint = () => printWindow.close();
+      if (typeof window.html2pdf !== 'function') { toast('تعذر تحميل أداة إنشاء PDF. حدّثي الصفحة ثم حاولي مرة أخرى.'); return; }
+      const button = document.querySelector('#workerProfilePdfButton');
+      const originalLabel = button?.textContent || '';
+      if (button) { button.disabled = true; button.textContent = 'جارٍ تجهيز التنزيل…'; }
+      const sheet = document.createElement('main');
+      sheet.className = 'worker-profile-pdf';
+      sheet.dir = 'rtl';
+      sheet.lang = 'ar';
+      const rows = fields.map(([label, fieldValue], index) => `<div class="worker-pdf-field ${index === 7 ? 'worker-pdf-price' : ''}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(fieldValue)}</strong></div>`).join('');
+      const date = new Intl.DateTimeFormat('ar-SA', { dateStyle: 'long' }).format(new Date());
+      sheet.innerHTML = `<header class="worker-pdf-header"><div class="worker-pdf-brand"><img src="${escapeHtml(logoUrl)}" alt="شعار الركائز البشرية"><div><span class="worker-pdf-eyebrow">خدمات البيت أقرب لك</span><h1>الركائز البشرية للاستقدام</h1><p>ملف بيانات مرشحة للعمل المنزلي</p></div></div><span class="worker-pdf-doc-tag">ملف مرشحة</span></header><section class="worker-pdf-content"><div class="worker-pdf-profile">${photoUrl ? `<img class="worker-pdf-photo" src="${escapeHtml(photoUrl)}" alt="صورة المرشحة">` : '<div class="worker-pdf-photo worker-pdf-photo-empty">الركائز<br>البشرية</div>'}<div class="worker-pdf-profile-info"><span class="worker-pdf-eyebrow">بيانات الملف</span><h2>${escapeHtml(value('name'))}</h2><p>${escapeHtml([value('nationality'), value('profession')].filter(Boolean).join('  ·  ') || 'بيانات قيد المراجعة')}</p><span class="worker-pdf-reference">الرقم المرجعي: ${escapeHtml(value('ref'))}</span></div><div class="worker-pdf-seal">ملف<br>معتمد<br>للمراجعة</div></div><div class="worker-pdf-section-title"><span>ملخص البيانات</span><i></i></div><div class="worker-pdf-grid">${rows}</div><footer class="worker-pdf-footer"><span>شركة الركائز البشرية للاستقدام</span><span>بيانات داخلية · ${escapeHtml(date)}</span></footer></section>`;
+      Object.assign(sheet.style, { position: 'fixed', left: '-10000px', top: '0', zIndex: '-1' });
+      document.body.append(sheet);
+      try {
+        await Promise.all([...sheet.querySelectorAll('img')].map(image => image.decode().catch(() => {})));
+        await window.html2pdf().set({
+          margin: [8, 9, 8, 9],
+          filename: `alrakayiz-${(value('ref') || 'worker').replace(/[^a-z0-9_-]/gi, '-')}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        }).from(sheet).save();
+        toast('تم تنزيل ملف PDF.');
+      } catch (error) {
+        console.error('Worker profile PDF download failed', error);
+        toast('لم نتمكن من إنشاء PDF. حاولي مرة أخرى.');
+      } finally {
+        sheet.remove();
+        if (button) { button.disabled = false; button.textContent = originalLabel; }
+      }
     }
 
     document.querySelector('#workerProfilePdfButton')?.addEventListener('click', downloadWorkerProfilePdf);
