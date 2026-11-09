@@ -110,7 +110,14 @@ def _clean_candidate_name(value: str) -> Optional[str]:
     candidate = re.sub(r"\s+", " ", value).strip(" \t:：|/,-–—.;")
     # A few CVs print several fields on the same line; keep only the name part.
     candidate = re.split(
-        r"\s+(?=(?:nationality|religion|gender|sex|date\s+of\s+(?:birth|joining)|dob|passport(?:\s+(?:number|no))?|age|profession|occupation|experience|marital\s+status|الجنسية|الديانة|الدين|النوع|الجنس|تاريخ\s+الميلاد|العمر|السن|رقم\s+الجواز|المهنة|الخبرة)\s*[:：=])",
+        r"\s+(?=(?:nationality|religion|gender|sex|date\s+of\s+(?:birth|joining)|dob|passport(?:\s+(?:number|no))?|age|profession|occupation|experience|marital\s+status|address|(?:home|present|permanent|current)\s+address|email|e-?mail|phone|mobile|contact|الجنسية|الديانة|الدين|النوع|الجنس|تاريخ\s+الميلاد|العمر|السن|رقم\s+الجواز|المهنة|الخبرة|العنوان|عنوان\s+السكن|البريد\s+الإلكتروني|رقم\s+الهاتف|الجوال|التواصل)\s*[:：=])",
+        candidate,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0].strip(" \t:：|/,-–—.;")
+    # Some table-based CVs put the next column heading directly after the name.
+    candidate = re.split(
+        r"\s+(?=(?:(?:address|(?:home|present|permanent|current)\s+address|email|e-?mail|phone|mobile|contact)(?:\b|$)|العنوان|عنوان\s+السكن|البريد\s+الإلكتروني|رقم\s+الهاتف|الجوال|التواصل))",
         candidate,
         maxsplit=1,
         flags=re.IGNORECASE,
@@ -134,12 +141,18 @@ def _clean_candidate_name(value: str) -> Optional[str]:
         "nationality", "religion", "date of birth", "marital status", "single", "married",
         "experience", "education", "employment history", "housemaid", "caregiver",
         "worker", "employee", "maid", "candidate", "applicant", "first name", "last name",
+        "address", "home address", "present address", "permanent address", "current address",
+        "email", "e-mail", "phone", "mobile", "contact", "contact details", "contact information",
         "الاسم", "الاسم الكامل", "الاسم الثلاثي", "الاسم الرباعي", "اسم العاملة",
         "اسم العاملة المنزلية", "اسم المرشحة", "اسم الموظفة", "البيانات الشخصية",
         "المعلومات الشخصية", "السيرة الذاتية", "الخبرة", "الجنسية", "الديانة",
-        "العمر", "رقم الجواز", "عاملة منزلية", "مربية أطفال",
+        "العمر", "رقم الجواز", "العنوان", "عنوان السكن", "البريد الإلكتروني", "رقم الهاتف",
+        "الجوال", "بيانات التواصل", "معلومات الاتصال", "عاملة منزلية", "مربية أطفال",
     }
-    if candidate.casefold() in rejected:
+    if candidate.casefold() in rejected or re.match(
+        r"(?i)^(?:(?:address|email|e-?mail|phone|mobile|contact)(?:\b|$)|العنوان|عنوان\s+السكن|البريد\s+الإلكتروني|رقم\s+الهاتف|الجوال|التواصل)",
+        candidate,
+    ):
         return None
     return candidate
 

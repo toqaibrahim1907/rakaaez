@@ -29,6 +29,16 @@ class NameExtractorTests(unittest.TestCase):
         self.assertIsNone(value)
         self.assertEqual(confidence, 0.0)
 
+    def test_address_heading_is_never_returned_as_worker_name(self):
+        for text in ("Full Name\nADDRESS\nAddress: Nairobi", "Name: ADDRESS"):
+            with self.subTest(text=text):
+                value, _ = extract_name(text, [])
+                self.assertIsNone(value)
+
+    def test_address_heading_after_name_is_removed(self):
+        value, _ = extract_name("Full Name: Mary Jane ADDRESS", [])
+        self.assertEqual(value, "Mary Jane")
+
 
 if __name__ == "__main__":
     unittest.main()
