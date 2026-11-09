@@ -57,6 +57,8 @@ _NON_NAME_VALUES = {
     "present address", "permanent address", "current address", "contact",
     "contact details", "personal details", "personal information", "profile",
     "personal profile", "nationality", "religion", "age", "experience",
+    "work experience", "work experience خبرة العمل", "خبرة العمل", "الخبرة العملية",
+    "الخبرة المهنية", "professional experience", "experience details", "employment history",
     "الاسم", "الاسم بالكامل", "الاسم الكامل", "اسم العاملة", "اسم العاملة المنزلية",
     "العنوان", "عنوان السكن", "بيانات التواصل", "معلومات الاتصال", "البيانات الشخصية",
     "المعلومات الشخصية", "الجنسية", "الديانة", "العمر", "الخبرة",

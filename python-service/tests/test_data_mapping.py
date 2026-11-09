@@ -55,7 +55,7 @@ class DataMappingTests(unittest.TestCase):
         self.assertEqual(set(result["unmapped_fields"]), {"nationality", "religion"})
 
     def test_address_heading_is_not_returned_as_name_and_raw_is_preserved(self):
-        for heading in ("ADDRESS", "Address", "العنوان"):
+        for heading in ("ADDRESS", "Address", "العنوان", "WORK EXPERIENCE خبرة العمل"):
             with self.subTest(heading=heading):
                 result = self.normalize(name=heading)
                 self.assertIsNone(result["fields"]["name"])

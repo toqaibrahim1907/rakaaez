@@ -60,6 +60,11 @@ class NameExtractorTests(unittest.TestCase):
         value, _ = extract_name("Full Name: Mary Jane ADDRESS", [])
         self.assertEqual(value, "Mary Jane")
 
+    def test_work_experience_heading_is_never_returned_as_name(self):
+        value, confidence = extract_name("Name: WORK EXPERIENCE خبرة العمل", [])
+        self.assertIsNone(value)
+        self.assertEqual(confidence, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

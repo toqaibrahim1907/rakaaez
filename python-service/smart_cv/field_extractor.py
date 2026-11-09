@@ -140,6 +140,8 @@ def _clean_candidate_name(value: str) -> Optional[str]:
         "curriculum vitae resume", "personal information", "professional summary",
         "nationality", "religion", "date of birth", "marital status", "single", "married",
         "experience", "education", "employment history", "housemaid", "caregiver",
+        "work experience", "work experience خبرة العمل", "خبرة العمل", "الخبرة العملية",
+        "الخبرة المهنية", "professional experience", "experience details",
         "worker", "employee", "maid", "candidate", "applicant", "first name", "last name",
         "address", "home address", "present address", "permanent address", "current address",
         "email", "e-mail", "phone", "mobile", "contact", "contact details", "contact information",
