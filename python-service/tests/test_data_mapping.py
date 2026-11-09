@@ -54,6 +54,14 @@ class DataMappingTests(unittest.TestCase):
         self.assertEqual(result["raw_fields"]["religion"], "Unknown Faith")
         self.assertEqual(set(result["unmapped_fields"]), {"nationality", "religion"})
 
+    def test_address_heading_is_not_returned_as_name_and_raw_is_preserved(self):
+        for heading in ("ADDRESS", "Address", "العنوان"):
+            with self.subTest(heading=heading):
+                result = self.normalize(name=heading)
+                self.assertIsNone(result["fields"]["name"])
+                self.assertEqual(result["raw_fields"]["name"], heading)
+                self.assertIn("name", result["unmapped_fields"])
+
     def test_unparseable_numeric_fields_remain_null_with_raw_value(self):
         result = self.normalize(salary="Negotiable", age="not stated", experience="Several years")
         for key in ("salary", "age", "experience"):

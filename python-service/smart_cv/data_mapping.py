@@ -48,6 +48,20 @@ JOBS = {
     "caregiver": "مقدمة رعاية", "care giver": "مقدمة رعاية", "مقدمة رعاية": "مقدمة رعاية",
 }
 
+# Guard the API boundary as well as the PDF parser. Some CV layouts contain
+# standalone section headings directly below a "Name" label; they must not be
+# presented as an employee name even if OCR mistakes the heading for a value.
+_NON_NAME_VALUES = {
+    "name", "full name", "complete name", "candidate name", "applicant name",
+    "worker name", "employee name", "maid name", "address", "home address",
+    "present address", "permanent address", "current address", "contact",
+    "contact details", "personal details", "personal information", "profile",
+    "personal profile", "nationality", "religion", "age", "experience",
+    "الاسم", "الاسم بالكامل", "الاسم الكامل", "اسم العاملة", "اسم العاملة المنزلية",
+    "العنوان", "عنوان السكن", "بيانات التواصل", "معلومات الاتصال", "البيانات الشخصية",
+    "المعلومات الشخصية", "الجنسية", "الديانة", "العمر", "الخبرة",
+}
+
 _ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
 
 
@@ -128,7 +142,11 @@ def normalize_extracted_fields(extracted: dict[str, Any]) -> dict[str, Any]:
     fields: dict[str, Any] = dict(extracted)
     unmapped: list[str] = []
 
-    fields["name"] = re.sub(r"\s+", " ", raw_fields["name"]).strip() if raw_fields["name"] else None
+    name = re.sub(r"\s+", " ", raw_fields["name"]).strip() if raw_fields["name"] else None
+    name_key = _key(name) if name else ""
+    fields["name"] = None if name_key in _NON_NAME_VALUES else name
+    if raw_fields["name"] and fields["name"] is None:
+        unmapped.append("name")
 
     nationality_raw = raw_fields["nationality"]
     nationality_key = _key(nationality_raw) if nationality_raw else ""
