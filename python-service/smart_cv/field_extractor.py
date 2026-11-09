@@ -110,7 +110,7 @@ def _clean_candidate_name(value: str) -> Optional[str]:
     candidate = re.sub(r"\s+", " ", value).strip(" \t:：|/,-–—.;")
     # A few CVs print several fields on the same line; keep only the name part.
     candidate = re.split(
-        r"\s+(?=(?:nationality|religion|date\s+of\s+birth|passport(?:\s+(?:number|no))?|age|profession|occupation|experience|الجنسية|الديانة|الدين|العمر|السن|رقم\s+الجواز|المهنة)\s*[:：=])",
+        r"\s+(?=(?:nationality|religion|gender|sex|date\s+of\s+(?:birth|joining)|dob|passport(?:\s+(?:number|no))?|age|profession|occupation|experience|marital\s+status|الجنسية|الديانة|الدين|النوع|الجنس|تاريخ\s+الميلاد|العمر|السن|رقم\s+الجواز|المهنة|الخبرة)\s*[:：=])",
         candidate,
         maxsplit=1,
         flags=re.IGNORECASE,
@@ -127,6 +127,7 @@ def _clean_candidate_name(value: str) -> Optional[str]:
         "curriculum vitae resume", "personal information", "professional summary",
         "nationality", "religion", "date of birth", "marital status", "single", "married",
         "experience", "education", "employment history", "housemaid", "caregiver",
+        "worker", "employee", "maid", "candidate", "applicant", "first name", "last name",
         "الاسم", "الاسم الكامل", "الاسم الثلاثي", "الاسم الرباعي", "اسم العاملة",
         "اسم العاملة المنزلية", "اسم المرشحة", "اسم الموظفة", "البيانات الشخصية",
         "المعلومات الشخصية", "السيرة الذاتية", "الخبرة", "الجنسية", "الديانة",
@@ -138,14 +139,14 @@ def _clean_candidate_name(value: str) -> Optional[str]:
 
 
 def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str], float]:
-    """Extract a name from an explicit label, then conservatively inspect CV title lines."""
+    """Extract a worker name only when a name label or split name fields are found."""
     labels = (
         r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name",
         r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
-        r"full\s+name(?:\s+of\s+(?:candidate|worker|applicant|employee))?",
+        r"full\s+name(?:\s+of\s+(?:candidate|worker|applicant|employee))?", r"complete\s+name",
         r"name\s+as\s+per\s+passport", r"name",
-        r"الاسم\s+(?:الكامل|الثلاثي|الرباعي)",
-        r"اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)", r"الاسم",
+        r"الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)",
+        r"اسم\s+(?:العاملة\s+المنزلية|العاملة|العامله|المرشحة|المرشحه|المرشح|الموظفة|الموظفه|العامل)", r"الاسم",
     )
     label_pattern = re.compile(r"^(?:\d+[.)-]?\s*)?(?:" + "|".join(labels) + r")(?=\s|[:：=|/,-]|$)", re.IGNORECASE)
     # Keep physical lines separate so labels with a value on the following line work too.
@@ -169,9 +170,54 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
                 return candidate, 0.84
             break
 
+    # Some PDF text layers put the label after a title or other text on the
+    # same line, so also search the whole document for explicit labelled names.
+    # Requiring a delimiter avoids treating prose such as "my name is" as a field.
+    anywhere_labels = (
+        r"full\s+name", r"complete\s+name",
+        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)",
+        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name",
+        r"name\s+as\s+per\s+passport", r"name",
+        r"الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)",
+        r"اسم\s+(?:العاملة\s+المنزلية|العاملة|العامله|المرشحة|المرشحه|المرشح|الموظفة|الموظفه|العامل)", r"الاسم",
+    )
+    anywhere_pattern = re.compile(
+        r"(?i)(?<![A-Za-z\u0600-\u06FF])(?:" + "|".join(anywhere_labels) +
+        r")(?![A-Za-z\u0600-\u06FF])\s*[:：=–—-]\s*"
+    )
+    for match in anywhere_pattern.finditer(text):
+        remainder = text[match.end():].splitlines()[0] if text[match.end():].splitlines() else ""
+        candidate = _clean_candidate_name(remainder)
+        if candidate:
+            return candidate, 0.93
+
+    # Also match descriptive labels without punctuation when embedded in a line.
+    # The generic label "name" is deliberately excluded here to avoid prose matches.
+    inline_anywhere_pattern = re.compile(
+        r"(?i)(?<![A-Za-z\u0600-\u06FF])(?:full\s+name|complete\s+name|"
+        r"name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid|domestic\s+worker)|"
+        r"(?:candidate|worker|applicant|employee|maid|domestic\s+worker)(?:'s)?\s+(?:full\s+)?name|"
+        r"الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)|"
+        r"اسم\s+(?:العاملة(?:\s+المنزلية)?|العامله|المرشحة|المرشحه|الموظفة|الموظفه|العامل))"
+        r"(?![A-Za-z\u0600-\u06FF])\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})"
+    )
+    for match in inline_anywhere_pattern.finditer(text):
+        candidate = _clean_candidate_name(match.group(1))
+        if candidate:
+            return candidate, 0.86
+
+    # Combine split first/last-name fields where both labels are present.
+    first = re.search(r"(?im)^\s*(?:first\s+name|given\s+name|الاسم\s+الأول|الاسم\s+الاول)\s*[:：=–—-]\s*([^\r\n]+)", text)
+    last = re.search(r"(?im)^\s*(?:last\s+name|family\s+name|surname|اسم\s+العائلة|اللقب)\s*[:：=–—-]\s*([^\r\n]+)", text)
+    if first and last:
+        first_name = _clean_candidate_name(first.group(1))
+        last_name = _clean_candidate_name(last.group(1))
+        if first_name and last_name:
+            return f"{first_name} {last_name}", 0.92
+
     # Some text extractors join a label and its value without punctuation.
     inline_pattern = re.compile(
-        r"(?im)^\s*(?:(?:candidate|worker|applicant|employee|maid)(?:'s)?\s+(?:full\s+)?name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid)|full\s+name|name|الاسم\s+(?:الكامل|الثلاثي|الرباعي)|اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
+        r"(?im)^\s*(?:(?:candidate|worker|applicant|employee|maid)(?:'s)?\s+(?:full\s+)?name|name\s+of\s+(?:the\s+)?(?:candidate|worker|applicant|employee|maid)|full\s+name|complete\s+name|name|الاسم\s+(?:الكامل|كامل|الثلاثي|الرباعي)|اسم\s+(?:العاملة\s+المنزلية|العاملة|المرشحة|المرشح|الموظفة|العامل)|الاسم)\s+([A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF .’'_-]{1,78})\s*$"
     )
     for match in inline_pattern.finditer(text):
         candidate = _clean_candidate_name(match.group(1))
@@ -181,7 +227,7 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
     # Use spatially aligned OCR/native spans when line reconstruction split the value.
     for token in tokens:
         label = token.get("text", "").strip().casefold()
-        if not re.fullmatch(r"(?:full\s+name|candidate\s+name|worker\s+name|applicant\s+name|name|الاسم|اسم\s+(?:العاملة|المرشحة|العامل))", label, re.IGNORECASE):
+        if not re.fullmatch(r"(?:full\s+name|complete\s+name|name\s+of\s+(?:the\s+)?(?:candidate|worker|employee|applicant|maid)|candidate\s+name|worker\s+name|employee\s+name|applicant\s+name|maid\s+name|name|الاسم(?:\s+(?:الكامل|كامل|الثلاثي|الرباعي))?|اسم\s+(?:العاملة(?:\s+المنزلية)?|المرشحة|العامل|الموظفة))", label, re.IGNORECASE):
             continue
         bbox = token.get("bbox") or (0, 0, 0, 0)
         same_line = [
@@ -189,35 +235,15 @@ def extract_name(text: str, tokens: List[Dict[str, Any]]) -> Tuple[Optional[str]
             if other is not token and abs((other.get("bbox") or (0, 0, 0, 0))[1] - bbox[1]) <= 8
         ]
         same_line.sort(key=lambda item: (item.get("bbox") or (0, 0, 0, 0))[0])
-        candidate = _clean_candidate_name(" ".join(item.get("text", "") for item in same_line))
+        row_text = " ".join(item.get("text", "") for item in same_line)
+        row_text = re.sub(
+            r"(?i)^\s*(?:full\s+name|complete\s+name|(?:candidate|worker|employee|applicant|maid)\s+name|name)\s*[:：=–—-]?\s*",
+            "", row_text,
+        )
+        row_text = re.sub(r"^\s*(?:الاسم|اسم\s+(?:العاملة|المرشحة|العامل))\s*[:：=–—-]?\s*", "", row_text)
+        candidate = _clean_candidate_name(row_text)
         if candidate:
             return candidate, 0.72
-
-    # Many CVs place a bare name as the document heading. Only consider the first
-    # few content lines and return low confidence so staff must review it.
-    ignored_heading_words = {
-        "curriculum", "vitae", "resume", "profile", "personal", "details",
-        "information", "experience", "employment", "application", "housemaid",
-        "domestic", "worker", "candidate", "applicant", "caregiver", "nanny",
-        "السيرة", "الذاتية", "البيانات", "الشخصية", "الخبرة", "العملية",
-        "عاملة", "منزلية", "مربية", "أطفال", "معلومات", "ملف",
-    }
-    title_lines = [line for line in lines if line][:12]
-    for line in title_lines:
-        # Avoid lines that look like any known field label/value pair or a heading.
-        if re.search(r"[:：=|]", line) or re.search(r"\d", line):
-            continue
-        candidate = _clean_candidate_name(line)
-        if not candidate:
-            continue
-        words = re.findall(r"[A-Za-z\u0600-\u06FF]+(?:['’_-][A-Za-z\u0600-\u06FF]+)?", candidate)
-        if not 2 <= len(words) <= 5:
-            continue
-        if any(word.casefold() in ignored_heading_words for word in words):
-            continue
-        if any(re.search(rf"(?<!\w){re.escape(label)}(?!\w)", candidate, re.IGNORECASE) for labels_for_field in FIELD_LABELS.values() for label in labels_for_field):
-            continue
-        return candidate, 0.48
     return None, 0.0
 
 

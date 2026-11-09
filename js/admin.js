@@ -303,7 +303,10 @@
       const rows = fields.map(([label, fieldValue], index) => `<div class="worker-pdf-field ${index === 7 ? 'worker-pdf-price' : ''}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(fieldValue)}</strong></div>`).join('');
       const date = new Intl.DateTimeFormat('ar-SA', { dateStyle: 'long' }).format(new Date());
       sheet.innerHTML = `<header class="worker-pdf-header"><div class="worker-pdf-brand"><img src="${escapeHtml(logoUrl)}" alt="شعار الركائز البشرية"><div><span class="worker-pdf-eyebrow">خدمات البيت أقرب لك</span><h1>الركائز البشرية للاستقدام</h1><p>ملف بيانات مرشحة للعمل المنزلي</p></div></div><span class="worker-pdf-doc-tag">ملف مرشحة</span></header><section class="worker-pdf-content"><div class="worker-pdf-profile">${photoUrl ? `<img class="worker-pdf-photo" src="${escapeHtml(photoUrl)}" alt="صورة المرشحة">` : '<div class="worker-pdf-photo worker-pdf-photo-empty">الركائز<br>البشرية</div>'}<div class="worker-pdf-profile-info"><span class="worker-pdf-eyebrow">بيانات الملف</span><h2>${escapeHtml(value('name'))}</h2><p>${escapeHtml([value('nationality'), value('profession')].filter(Boolean).join('  ·  ') || 'بيانات قيد المراجعة')}</p><span class="worker-pdf-reference">الرقم المرجعي: ${escapeHtml(value('ref'))}</span></div><div class="worker-pdf-seal">ملف<br>معتمد<br>للمراجعة</div></div><div class="worker-pdf-section-title"><span>ملخص البيانات</span><i></i></div><div class="worker-pdf-grid">${rows}</div><footer class="worker-pdf-footer"><span>شركة الركائز البشرية للاستقدام</span><span>بيانات داخلية · ${escapeHtml(date)}</span></footer></section>`;
-      Object.assign(sheet.style, { position: 'fixed', left: '-10000px', top: '0', zIndex: '-1' });
+      // Keep the source near the viewport; html2canvas can return an empty
+      // canvas when its source sits far outside the visible page. The review
+      // modal remains above this temporary render surface.
+      Object.assign(sheet.style, { position: 'fixed', left: '0', top: '0', zIndex: '1040', pointerEvents: 'none' });
       document.body.append(sheet);
       try {
         await Promise.all([...sheet.querySelectorAll('img')].map(image => image.decode().catch(() => {})));
@@ -311,7 +314,14 @@
           margin: [8, 9, 8, 9],
           filename: `alrakayiz-${(value('ref') || 'worker').replace(/[^a-z0-9_-]/gi, '-')}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
+          html2canvas: {
+            scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0,
+            windowWidth: Math.max(1200, sheet.scrollWidth), windowHeight: Math.max(1200, sheet.scrollHeight),
+            onclone: clonedDocument => {
+              const clonedSheet = clonedDocument.querySelector('.worker-profile-pdf');
+              if (clonedSheet) Object.assign(clonedSheet.style, { position: 'static', left: 'auto', top: 'auto', zIndex: 'auto', transform: 'none' });
+            },
+          },
           jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
           pagebreak: { mode: ['css', 'legacy'] },
         }).from(sheet).save();
