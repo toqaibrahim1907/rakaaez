@@ -2,13 +2,18 @@ const config = globalThis.RENTAL_CONFIG;
 const client = config?.supabaseUrl && config?.supabasePublishableKey && globalThis.supabase ? globalThis.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
 let site = null;
 if (client) {
-  const result = await client.from('website_published_content').select('organization_id,headline,subhead').limit(2);
+  const result = await client.from('website_published_content').select('organization_id,headline,subhead,images').limit(2);
   if (!result.error && result.data?.length === 1) site = result.data[0];
 }
 if (site) {
   const title = document.querySelector('.hero-copy h1'), description = document.querySelector('.hero-copy > p');
   if (title && site.headline) title.textContent = site.headline;
   if (description && site.subhead) description.textContent = site.subhead;
+  const hero = document.querySelector('.hero-image');
+  if (hero && site.images?.hero) {
+    const image = await client.storage.from('website-site-media').createSignedUrl(site.images.hero, 120);
+    if (!image.error && image.data?.signedUrl) hero.style.backgroundImage = `linear-gradient(270deg,rgba(13,37,54,.93),rgba(13,37,54,.05)),url(${JSON.stringify(image.data.signedUrl)})`;
+  }
 }
 const requestForm = document.querySelector('#requestForm');
 if (requestForm) {

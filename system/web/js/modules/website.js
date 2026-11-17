@@ -9,7 +9,8 @@ export function websiteView(state) {
   void (async () => {
     try {
       const org = state.context.organization_id;
-      const { data, error } = await client.from("website_content").select("*").eq("organization_id", org).maybeSingle();
+      const result = await client.from("website_content").select("*").eq("organization_id", org).maybeSingle();
+      let data = result.data; const error = result.error;
       if (error) throw error;
       const headline = el("input", { value: data?.draft?.headline ?? data?.headline ?? "", maxlength: 300 });
       const subhead = el("textarea", { rows: 4, maxlength: 2000 }, data?.draft?.subhead ?? data?.subhead ?? "");
@@ -21,10 +22,11 @@ export function websiteView(state) {
         publish.addEventListener("click", async () => {
           publish.disabled = true;
           try {
-            const current = await client.from("website_content").select("draft").eq("organization_id", org).single();
+            const current = await client.from("website_content").select("draft,images").eq("organization_id", org).single();
             if (current.error) throw current.error;
             const draft = current.data.draft || {};
-            const result = await client.from("website_content").update({ headline: draft.headline || "", subhead: draft.subhead || "", published: true, updated_at: new Date().toISOString() }).eq("organization_id", org).select("organization_id");
+            const images = { ...(current.data.images || {}), ...(draft.images || {}) };
+            const result = await client.from("website_content").update({ headline: draft.headline || "", subhead: draft.subhead || "", images, published: true, updated_at: new Date().toISOString() }).eq("organization_id", org).select("organization_id");
             if (result.error) throw result.error;
             if (!result.data.length) throw new Error("تعذر نشر المحتوى");
             notify("تم نشر المسودة المحفوظة");
@@ -38,10 +40,32 @@ export function websiteView(state) {
             const payload = { organization_id: org, draft, updated_at: new Date().toISOString() };
             const result = await client.from("website_content").upsert(payload, { onConflict: "organization_id" });
             if (result.error) throw result.error;
-            if (data) data.draft = draft;
+            if (data) data.draft = draft; else data = { draft };
             notify("تم حفظ المسودة");
           } catch (error) { showError(error); } finally { save.disabled = false; }
         });
+        const imageInput = el("input", { type: "file", accept: "image/jpeg,image/png,image/webp" });
+        const uploadImage = el("button", { type: "button", class: "secondary" }, "حفظ صورة الغلاف في المسودة");
+        uploadImage.addEventListener("click", async () => {
+          const file = imageInput.files?.[0];
+          if (!file || !file.size || file.size > 5242880) { showError(new Error("اختاري صورة لا تتجاوز 5 ميجابايت.")); return; }
+          const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+          const valid = (file.type === "image/jpeg" && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) || (file.type === "image/png" && [137,80,78,71,13,10,26,10].every((v, i) => bytes[i] === v)) || (file.type === "image/webp" && new TextDecoder().decode(bytes.slice(0,4)) === "RIFF" && new TextDecoder().decode(bytes.slice(8,12)) === "WEBP");
+          if (!valid) { showError(new Error("نوع الصورة غير مدعوم أو لا يطابق محتواها.")); return; }
+          uploadImage.disabled = true; const path = `${org}/${crypto.randomUUID()}`; let uploaded = false;
+          try {
+            const upload = await client.storage.from("website-site-media").upload(path, file, { contentType: file.type, upsert: false });
+            if (upload.error) throw upload.error; uploaded = true;
+            const current = await client.from("website_content").select("draft").eq("organization_id", org).maybeSingle();
+            if (current.error) throw current.error;
+            const draft = { ...(current.data?.draft || {}), images: { ...(current.data?.draft?.images || {}), hero: path } };
+            const saved = await client.from("website_content").upsert({ organization_id: org, draft, updated_at: new Date().toISOString() }, { onConflict: "organization_id" });
+            if (saved.error) throw saved.error;
+            data = { ...(data || {}), draft }; imageInput.value = ""; notify("حُفظت صورة الغلاف في المسودة؛ انشريها لعرضها.");
+          } catch (error) { if (uploaded) await client.storage.from("website-site-media").remove([path]); showError(error); }
+          finally { uploadImage.disabled = false; }
+        });
+        form.append(el("label", {}, "صورة الغلاف · حتى 5 ميجابايت", imageInput), uploadImage);
       } else { headline.disabled = true; subhead.disabled = true; }
       status.replaceWith(form, el("p", {}, "احفظ المسودة أولاً، ثم انشرها لعرضها على الموقع الجديد."));
     } catch (error) { status.textContent = "تعذر تحميل المحتوى"; showError(error); }

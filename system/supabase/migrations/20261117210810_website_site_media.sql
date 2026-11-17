@@ -1,0 +1,6 @@
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values ('website-site-media','website-site-media',false,5242880,array['image/jpeg','image/png','image/webp']);
+create policy website_media_member_read on storage.objects for select to authenticated using (bucket_id='website-site-media' and exists(select 1 from public.organizations o where split_part(objects.name,'/',1)=o.id::text and private.has_permission(o.id,'rental.website.read')));
+create policy website_media_member_insert on storage.objects for insert to authenticated with check (bucket_id='website-site-media' and exists(select 1 from public.organizations o where split_part(objects.name,'/',1)=o.id::text and private.has_permission(o.id,'rental.website.write')));
+create policy website_media_member_delete on storage.objects for delete to authenticated using (bucket_id='website-site-media' and exists(select 1 from public.organizations o where split_part(objects.name,'/',1)=o.id::text and private.has_permission(o.id,'rental.website.write')));
+create policy website_media_published_read on storage.objects for select to anon,authenticated using (bucket_id='website-site-media' and exists(select 1 from public.website_published_content c where c.images->>'hero'=objects.name));
+

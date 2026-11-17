@@ -123,6 +123,19 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
     try { assert.equal((await db.query(`select name from storage.objects where name='${photo}'`)).rows.length, 0); }
     finally { await db.exec("reset role"); }
   });
+  await t.test("published site media cannot expose files belonging to another company", async () => {
+    const own = `${org}/hero-image`, foreign = `${other}/other-image`;
+    await asUser(manager, `insert into storage.objects(bucket_id,name) values('website-site-media','${own}')`);
+    await asUser(outsider, `insert into storage.objects(bucket_id,name) values('website-site-media','${foreign}')`);
+    await asUser(manager, `update public.website_content set images=jsonb_build_object('hero','${own}') where organization_id='${org}'`);
+    await db.exec("set role anon");
+    try { assert.equal((await db.query(`select name from storage.objects where name='${own}'`)).rows.length, 1); }
+    finally { await db.exec("reset role"); }
+    await asUser(manager, `update public.website_content set images=jsonb_build_object('hero','${foreign}') where organization_id='${org}'`);
+    await db.exec("set role anon");
+    try { assert.equal((await db.query(`select name from storage.objects where name='${foreign}'`)).rows.length, 0); }
+    finally { await db.exec("reset role"); }
+  });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
     assert.equal((await asUser(employee, "select phone from public.company_identity")).rows.length, 0);
