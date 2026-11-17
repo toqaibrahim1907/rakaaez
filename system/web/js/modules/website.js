@@ -1,6 +1,7 @@
 import { el, notify, showError } from "../components/dom.js";
 import { client } from "../supabase-client.js";
 import { has } from "../permissions.js";
+import { modal, closeModal } from "../components/modal.js";
 
 export function websiteContentView(state) {
   const panel = el("section", { class: "panel" }, el("h2", {}, "محتوى الموقع"));
@@ -73,6 +74,77 @@ export function websiteContentView(state) {
   return panel;
 }
 
+async function analyzeCv(row) {
+  async function request(url, options = {}) {
+    const session = await client.auth.getSession();
+    const token = session.data?.session?.access_token;
+    if (session.error || !token) throw new Error("يرجى تسجيل الدخول مجدداً.");
+    const response = await fetch(url, { ...options, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error === "cv_extraction_not_configured" ? "خدمة تحليل السير غير مُعدّة على الخادم." : "تعذر الاتصال بخدمة تحليل السير.");
+    return payload;
+  }
+  const start = await request("/api/worker-extraction", { method: "POST", body: JSON.stringify({ cv_path: row.cv_path, file_name: row.cv_file_name }) });
+  if (!/^[0-9a-f-]{36}$/i.test(start.job_id || "")) throw new Error("تعذر بدء التحليل.");
+  const deadline = Date.now() + 180000;
+  while (Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    const job = await request(`/api/worker-extraction?job_id=${encodeURIComponent(start.job_id)}`);
+    if (job.status === "complete" && job.result) return job.result;
+    if (job.status === "failed") throw new Error("تعذر تحليل السيرة؛ يمكنك إدخال البيانات يدوياً.");
+  }
+  throw new Error("انتهت مهلة التحليل؛ يمكنك المحاولة مجدداً.");
+}
+
+function reviewCv(state, row, result, refresh) {
+  const fields = result.fields || {};
+  const definitions = [["name", "الاسم الداخلي", row.name], ["nationality", "الجنسية", row.nationality], ["job", "المهنة", row.profession], ["age", "العمر", row.age], ["salary", "الراتب", row.salary], ["religion", "الديانة", row.religion], ["passport_number", "رقم الجواز", row.passport_number], ["experience", "الخبرة", row.experience]];
+  const controls = Object.fromEntries(definitions.map(([key, label, fallback]) => [key, { label, input: el("input", { value: fields[key] ?? fallback ?? "", maxlength: 200 }) }]));
+  const service = el("select", {}, ["الاستقدام", "التأجير"].map(value => el("option", { value }, value))); service.value = row.service || "الاستقدام";
+  const languages = el("input", { value: row.languages || "", maxlength: 200 });
+  const skills = el("input", { value: row.skills || "", maxlength: 500 });
+  const cost = el("input", { type: "number", min: 0, step: "0.01", value: row.total_recruitment_cost ?? "" });
+  const form = el("form", {}, el("p", {}, "راجعي البيانات المستخرجة وعدّليها قبل الحفظ. لا تُنشر البيانات الخاصة على الموقع."),
+    el("label", {}, "نوع الخدمة", service),
+    definitions.map(([key]) => {
+      const confidence = Number(result.confidence?.[key]);
+      const hint = Number.isFinite(confidence) && result.confidence?.[key] != null ? (confidence < 0.72 ? " · يحتاج مراجعة" : " · ثقة مرتفعة") : " · راجعي القيمة";
+      return el("label", {}, controls[key].label, el("small", {}, hint), controls[key].input);
+    }),
+    el("label", {}, "اللغات", languages), el("label", {}, "المهارات", skills), el("label", {}, "إجمالي سعر الاستقدام", cost),
+    (result.warnings || []).filter(value => typeof value === "string").map(value => el("p", {}, value)));
+  const photos = Array.isArray(result.photos) ? result.photos.filter(photo => typeof photo?.data === "string" && photo.data.length <= 400000 && /^[A-Za-z0-9+/=]+$/.test(photo.data)) : [];
+  let choice;
+  if (photos.length) {
+    choice = el("select", {}, el("option", { value: "" }, "الاحتفاظ بالصورة الحالية"), photos.map((photo, index) => el("option", { value: String(index) }, `صورة ${index + 1}`)));
+    const preview = el("img", { alt: "معاينة الصورة المختارة", style: "max-width:180px;display:block", hidden: true });
+    choice.addEventListener("change", () => { const photo = photos[Number(choice.value)]; preview.hidden = !choice.value || !photo; if (!preview.hidden) preview.src = `data:image/jpeg;base64,${photo.data}`; });
+    form.append(el("label", {}, "صورة العاملة المستخرجة", choice), preview);
+  }
+  const save = el("button", { type: "submit", class: "primary" }, "حفظ البيانات بعد المراجعة");
+  form.append(save, el("button", { type: "button", class: "secondary", onClick: closeModal }, "إلغاء"));
+  form.addEventListener("submit", async event => {
+    event.preventDefault(); save.disabled = true; let uploadedPath = "";
+    try {
+      const values = Object.fromEntries(definitions.map(([key]) => [key, controls[key].input.value.trim()]));
+      const update = { name: values.name, nationality: values.nationality, profession: values.job, age: values.age, salary: values.salary, religion: values.religion, passport_number: values.passport_number, experience: values.experience, service: service.value, languages: languages.value.trim(), skills: skills.value.trim(), total_recruitment_cost: cost.value === "" ? null : Number(cost.value), extracted: true, updated_at: new Date().toISOString() };
+      if (choice?.value) {
+        const binary = atob(photos[Number(choice.value)].data), bytes = Uint8Array.from(binary, ch => ch.charCodeAt(0));
+        uploadedPath = `${state.context.organization_id}/${row.id}/${crypto.randomUUID()}`;
+        const upload = await client.storage.from("website-worker-photos").upload(uploadedPath, new Blob([bytes], { type: "image/jpeg" }), { contentType: "image/jpeg", upsert: false });
+        if (upload.error) { uploadedPath = ""; throw upload.error; }
+        update.photo_path = uploadedPath;
+      }
+      const saved = await client.from("website_workers").update(update).eq("organization_id", state.context.organization_id).eq("id", row.id).select("id");
+      if (saved.error) throw saved.error;
+      if (!saved.data.length) throw new Error("تعذر حفظ البيانات.");
+      closeModal(); await refresh(); notify("تم حفظ البيانات بعد المراجعة.");
+    } catch (error) { if (uploadedPath) await client.storage.from("website-worker-photos").remove([uploadedPath]); showError(error); }
+    finally { save.disabled = false; }
+  });
+  modal("مراجعة بيانات السيرة", form, { section: "إدارة الموقع" });
+}
+
 export function websiteOverview(state) {
   const panel = el("section", { class: "panel" }, el("h2", {}, "نظرة عامة على الموقع"));
   const status = el("p", {}, "جارٍ تحميل الملخص…"); panel.append(status);
@@ -92,7 +164,7 @@ export function websiteWorkers(state, filesOnly = false) {
   const container = el("section", { class: "panel" }, el("h2", {}, filesOnly ? "السير الذاتية وصور العاملات" : "بطاقات عاملات الموقع"));
   const list = el("div", {}, "جارٍ التحميل…");
   async function load() {
-    const { data, error } = await client.from("website_workers").select("id,ref,name,nationality,profession,age,experience,publication,availability,cv_path,cv_file_name,photo_path").eq("organization_id", org).order("created_at", { ascending: false });
+    const { data, error } = await client.from("website_workers").select("id,ref,name,nationality,profession,age,experience,salary,religion,passport_number,service,languages,skills,total_recruitment_cost,publication,availability,cv_path,cv_file_name,photo_path").eq("organization_id", org).order("created_at", { ascending: false });
     if (error) { showError(error); list.textContent = "تعذر تحميل البطاقات"; return; }
     list.replaceChildren(...(data.length ? data.map(row => {
       const card = el("article", { class: "website-inbox-card" }, el("strong", {}, row.ref), el("p", {}, `${row.name} · ${row.nationality} · ${row.profession}`), el("p", {}, `${row.publication} · ${row.availability}`));
@@ -110,6 +182,17 @@ export function websiteWorkers(state, filesOnly = false) {
         card.append(open);
       }
       if (has(state.context, "website", "write")) {
+        if (row.cv_path) {
+          const analyze = el("button", { type: "button", class: "secondary" }, "تحليل السيرة ومراجعة البيانات");
+          const progress = el("span", { role: "status" });
+          analyze.addEventListener("click", async () => {
+            analyze.disabled = true; progress.textContent = "جارٍ تحليل السيرة…";
+            try { const result = await analyzeCv(row); reviewCv(state, row, result, load); progress.textContent = ""; }
+            catch (error) { progress.textContent = "تعذر التحليل. الملف محفوظ ويمكنك تعديل البيانات يدويًا."; showError(error); }
+            finally { analyze.disabled = false; }
+          });
+          card.append(analyze, progress);
+        }
         for (const kind of ["cv", "photo"]) {
           const isCv = kind === "cv", bucket = isCv ? "website-worker-cvs" : "website-worker-photos";
           const input = el("input", { type: "file", accept: isCv ? "application/pdf" : "image/jpeg,image/png,image/webp" });
@@ -177,6 +260,37 @@ export function websiteWorkers(state, filesOnly = false) {
       }
       return card;
     }) : [el("p", { class: "empty" }, "لا توجد بطاقات حالياً.")]));
+  }
+  if (filesOnly && has(state.context, "website", "write")) {
+    const input = el("input", { type: "file", accept: "application/pdf,.pdf", required: true });
+    const submit = el("button", { type: "submit", class: "primary" }, "رفع السيرة وتحليلها");
+    const status = el("p", { role: "status" });
+    const form = el("form", {}, el("label", {}, "اختاري سيرة ذاتية PDF · حتى 15 ميجابايت", input), submit, status);
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); const file = input.files?.[0];
+      if (!file || !file.name.toLowerCase().endsWith(".pdf") || !file.size || file.size > 15728640 || new TextDecoder().decode((await file.slice(0, 5).arrayBuffer())) !== "%PDF-") { status.textContent = "اختاري ملف PDF صالحًا لا يتجاوز 15 ميجابايت."; return; }
+      submit.disabled = true; status.textContent = "جارٍ رفع السيرة…"; let id = "", path = "", linked = false;
+      try {
+        id = crypto.randomUUID(); const ref = `WK-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+        const created = await client.from("website_workers").insert({ id, organization_id: org, ref, name: "قيد مراجعة السيرة", nationality: "", profession: "", cv_path: "", cv_file_name: "" }).select("id");
+        if (created.error) throw created.error;
+        if (!created.data.length) throw new Error("تعذر إنشاء المسودة.");
+        path = `${org}/${id}/${crypto.randomUUID()}`;
+        const upload = await client.storage.from("website-worker-cvs").upload(path, file, { contentType: "application/pdf", upsert: false });
+        if (upload.error) { path = ""; throw upload.error; }
+        const saved = await client.from("website_workers").update({ cv_path: path, cv_file_name: file.name.slice(0, 200) }).eq("organization_id", org).eq("id", id).select("id");
+        if (saved.error) throw saved.error;
+        if (!saved.data.length) throw new Error("تعذر ربط السيرة بالمسودة.");
+        linked = true; await load(); status.textContent = "تم رفع السيرة. جارٍ تحليل البيانات…";
+        const row = { id, cv_path: path, cv_file_name: file.name.slice(0, 200), name: "", nationality: "", profession: "", age: "", experience: "" };
+        const result = await analyzeCv(row); status.textContent = "راجعي البيانات المستخرجة قبل حفظها."; input.value = ""; reviewCv(state, row, result, load);
+      } catch (error) {
+        if (!linked) { if (path) await client.storage.from("website-worker-cvs").remove([path]); if (id) await client.from("website_workers").delete().eq("organization_id", org).eq("id", id); }
+        status.textContent = linked ? "السيرة محفوظة كمسودة. تعذر التحليل؛ يمكنك إعادة المحاولة أو إدخال البيانات يدويًا." : "تعذر رفع السيرة.";
+        showError(error); await load();
+      } finally { submit.disabled = false; }
+    });
+    container.append(form);
   }
   if (!filesOnly && has(state.context, "website", "write")) {
     const ref = el("input", { required: true, maxlength: 80 }), name = el("input", { required: true, maxlength: 150 }), nationality = el("input", { required: true, maxlength: 100 }), profession = el("input", { required: true, maxlength: 100 }), age = el("input", { maxlength: 20 }), experience = el("input", { maxlength: 200 });

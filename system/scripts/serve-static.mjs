@@ -1,6 +1,8 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { handleCvExtraction } from "./api/worker-extraction.mjs";
+try { process.loadEnvFile(".env.local"); } catch (error) { if (error.code !== "ENOENT") throw error; }
 const base = path.resolve("dist");
 const mime = {
   ".html": "text/html; charset=utf-8",
@@ -19,6 +21,7 @@ const server = http.createServer(async (req, res) => {
     const pathname = decodeURIComponent(
       new URL(req.url, "http://localhost").pathname,
     );
+    if (pathname === "/api/worker-extraction") return await handleCvExtraction(req, res);
     const filename = path.resolve(
       base,
       "." + (pathname === "/" ? "/index.html" : pathname),
@@ -40,3 +43,4 @@ const server = http.createServer(async (req, res) => {
 server.listen(5173, "127.0.0.1", () =>
   console.log("Local: http://127.0.0.1:5173"),
 );
+

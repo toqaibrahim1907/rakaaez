@@ -48,3 +48,8 @@ yarn-error.log*
 
 # OS metadata
 .DS_Store
+
+# Python runtime files
+__pycache__/
+*.py[cod]
+.venv/

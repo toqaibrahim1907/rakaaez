@@ -38,3 +38,7 @@ The first manager is explicitly provisioned against an existing verified Auth us
 
 Supabase project: `bxpceusjvjofnofblwju`. The same static frontend can be deployed to another host using environment configuration; hosting is independent of Supabase.
 
+
+### تحليل السير الذاتية للموقع
+
+تفاصيل تشغيل خدمة OCR الخاصة ومسار الخادم واختبارهما في [docs/cv-extraction.md](docs/cv-extraction.md). الإعداد المحلي مطلوب؛ بناء الملفات الثابتة وحده لا يفعّل التحليل.
