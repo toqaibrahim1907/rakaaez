@@ -152,7 +152,7 @@ function websiteWorkers(state) {
         form.reset(); await load(); notify("تمت إضافة المسودة");
       } catch (error) { showError(error); } finally { submit.disabled = false; }
     });
-    container.append(form, el("p", {}, "الاسم والملفات خاصة. الصور لا تظهر في الموقع العام بعد."));
+    container.append(form, el("p", {}, "الاسم والسيرة خاصان. تظهر الصورة للزوار عند نشر البطاقة وتوفر العاملة."));
   }
   container.append(list); void load(); return container;
 }
@@ -201,4 +201,5 @@ function websiteInbox(state, table, title) {
   })();
   return container;
 }
+
 

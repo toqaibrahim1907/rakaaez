@@ -98,6 +98,21 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
     await assert.rejects(() => asUser(employee, `insert into storage.objects(bucket_id,name) values('website-worker-photos','${org}/${id}/photo')`));
     await assert.rejects(() => asUser(manager, `insert into storage.objects(bucket_id,name) values('website-worker-cvs','${other}/${id}/wrong')`));
   });
+  await t.test("only the current published worker photo is readable by visitors", async () => {
+    const id = (await asUser(manager, "select id from public.website_workers where ref='PUBLIC-1'")).rows[0].id;
+    const photo = `${org}/${id}/published-image`;
+    await asUser(manager, `insert into storage.objects(bucket_id,name) values('website-worker-photos','${photo}')`);
+    await asUser(manager, `update public.website_workers set photo_path='${photo}',availability='متاحة' where id='${id}'`);
+    await db.exec("grant usage on schema storage to anon; grant select on storage.objects to anon; set role anon");
+    try {
+      assert.equal((await db.query(`select name from storage.objects where name='${photo}'`)).rows.length, 1);
+      assert.equal((await db.query("select name from storage.objects where bucket_id='website-worker-cvs'")).rows.length, 0);
+    } finally { await db.exec("reset role"); }
+    await asUser(manager, `update public.website_workers set publication='مسودة' where id='${id}'`);
+    await db.exec("set role anon");
+    try { assert.equal((await db.query(`select name from storage.objects where name='${photo}'`)).rows.length, 0); }
+    finally { await db.exec("reset role"); }
+  });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
     assert.equal((await asUser(employee, "select phone from public.company_identity")).rows.length, 0);

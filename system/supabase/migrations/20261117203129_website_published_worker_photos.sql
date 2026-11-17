@@ -1,0 +1,3 @@
+create or replace view public.website_published_workers with (security_barrier=true) as select w.organization_id,w.ref,w.nationality,w.profession,w.service,w.age,w.experience,w.languages,w.skills,w.photo_path from public.website_workers w join public.website_content c on c.organization_id=w.organization_id where c.published=true and w.publication='منشورة' and w.availability='متاحة';
+create policy website_published_photo_read on storage.objects for select to anon,authenticated using (bucket_id='website-worker-photos' and exists (select 1 from public.website_published_workers w where w.photo_path=objects.name));
+
