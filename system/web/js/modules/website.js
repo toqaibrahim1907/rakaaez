@@ -61,6 +61,31 @@ function websiteWorkers(state) {
     list.replaceChildren(...(data.length ? data.map(row => {
       const card = el("article", { class: "website-inbox-card" }, el("strong", {}, row.ref), el("p", {}, `${row.name} · ${row.nationality} · ${row.profession}`), el("p", {}, `${row.publication} · ${row.availability}`));
       if (has(state.context, "website", "write")) {
+        const edit = el("button", { type: "button", class: "secondary" }, "تعديل البطاقة");
+        edit.addEventListener("click", () => {
+          if (card.querySelector("form")) return;
+          const name = el("input", { required: true, maxlength: 150, value: row.name });
+          const nationality = el("input", { required: true, maxlength: 100, value: row.nationality });
+          const profession = el("input", { required: true, maxlength: 100, value: row.profession });
+          const age = el("input", { maxlength: 20, value: row.age || "" });
+          const experience = el("input", { maxlength: 200, value: row.experience || "" });
+          const availability = el("select", {}, ["متاحة", "تم الحجز", "غير متاحة", "مؤرشفة"].map(value => el("option", { value }, value)));
+          availability.value = row.availability;
+          const save = el("button", { type: "submit", class: "primary" }, "حفظ التعديلات");
+          const cancel = el("button", { type: "button", class: "secondary" }, "إلغاء");
+          const form = el("form", {}, el("label", {}, "الاسم الداخلي", name), el("label", {}, "الجنسية", nationality), el("label", {}, "المهنة", profession), el("label", {}, "العمر", age), el("label", {}, "الخبرة", experience), el("label", {}, "التوفر", availability), save, cancel);
+          cancel.addEventListener("click", () => form.remove());
+          form.addEventListener("submit", async event => {
+            event.preventDefault(); save.disabled = true;
+            try {
+              const result = await client.from("website_workers").update({ name: name.value.trim(), nationality: nationality.value.trim(), profession: profession.value.trim(), age: age.value.trim(), experience: experience.value.trim(), availability: availability.value, updated_at: new Date().toISOString() }).eq("organization_id", org).eq("id", row.id).select("id");
+              if (result.error) throw result.error;
+              if (!result.data.length) throw new Error("تعذر حفظ البطاقة");
+              await load(); notify("تم حفظ البطاقة");
+            } catch (error) { showError(error); } finally { save.disabled = false; }
+          });
+          card.append(form); name.focus();
+        });
         const toggle = el("button", { type: "button", class: "secondary" }, row.publication === "منشورة" ? "إلغاء النشر" : "نشر البطاقة");
         toggle.addEventListener("click", async () => {
           toggle.disabled = true;
@@ -71,7 +96,7 @@ function websiteWorkers(state) {
             await load(); notify("تم تحديث البطاقة");
           } catch (error) { showError(error); } finally { toggle.disabled = false; }
         });
-        card.append(toggle);
+        card.append(edit, toggle);
       }
       return card;
     }) : [el("p", { class: "empty" }, "لا توجد بطاقات حالياً.")]));

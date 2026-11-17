@@ -81,6 +81,12 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
       for (const key of ["name", "passport_number", "cv_path", "total_recruitment_cost"]) assert.equal(rows[0][key], undefined);
       await assert.rejects(() => db.query("select * from public.website_workers"));
     } finally { await db.exec("reset role"); }
+    assert.equal((await asUser(employee, "update public.website_workers set nationality='Changed' where ref='PUBLIC-1' returning id")).rows.length, 0);
+    await assert.rejects(() => asUser(manager, "update public.website_workers set availability='invalid' where ref='PUBLIC-1'"));
+    assert.equal((await asUser(manager, "update public.website_workers set availability='تم الحجز' where ref='PUBLIC-1' returning id")).rows.length, 1);
+    await db.exec("set role anon");
+    try { assert.equal((await db.query("select * from public.website_published_workers")).rows.length, 0); }
+    finally { await db.exec("reset role"); }
   });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
