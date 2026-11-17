@@ -71,6 +71,16 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
     assert.equal((await asUser(manager, "select id from public.website_complaints")).rows.length, 1);
     assert.equal((await asUser(outsider, "select id from public.website_complaints")).rows.length, 0);
   });
+  await t.test("public submission limits apply across requests and complaints", async () => {
+    await db.exec("set role anon");
+    try {
+      await db.query("select public.submit_website_request('Test','555-111-2222','التأجير','')");
+      await db.query("select public.submit_website_complaint('5551112222','Test complaint')");
+      await db.query("select public.submit_website_request('Test','5551112222','الاستقدام','')");
+      await assert.rejects(() => db.query("select public.submit_website_complaint('5551112222','Test complaint')"));
+      await assert.rejects(() => db.query("select public.submit_website_request('Test','abcdefgh','التأجير','')"));
+    } finally { await db.exec("reset role"); }
+  });
   await t.test("public worker cards exclude private fields and unpublished workers", async () => {
     await asUser(manager, `insert into public.website_workers(organization_id,ref,name,nationality,profession,publication,cv_path,cv_file_name,passport_number,total_recruitment_cost) values('${org}','PUBLIC-1','Private name','Test','Worker','منشورة','private.pdf','private.pdf','SECRET',100),('${org}','DRAFT-1','Draft','Test','Worker','مسودة','','','',0)`);
     await db.exec("set role anon");

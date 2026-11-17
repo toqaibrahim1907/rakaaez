@@ -22,7 +22,7 @@ if (requestForm) {
       if (details.length > 1000) throw new Error('تفاصيل الطلب طويلة أكثر من اللازم.');
       const {data,error} = await client.rpc('submit_website_request',{p_name:values.get('name'),p_mobile:values.get('mobile'),p_service:values.get('service') === 'rental' ? 'التأجير' : 'الاستقدام',p_notes:details});
       if (error) throw error; message.className='form-message show success'; message.textContent=`تم الإرسال بنجاح. رقم المتابعة: ${data}`; requestForm.reset();
-    } catch (error) { message.className='form-message show error'; message.textContent=error.message === 'تفاصيل الطلب طويلة أكثر من اللازم.' ? error.message : 'تعذر إرسال الطلب حالياً. حاولي لاحقاً.'; }
+    } catch (error) { message.className='form-message show error'; message.textContent=error.code === '53300' ? 'تم الوصول لحد الإرسال. يرجى المحاولة لاحقاً.' : error.message === 'تفاصيل الطلب طويلة أكثر من اللازم.' ? error.message : 'تعذر إرسال الطلب حالياً. حاولي لاحقاً.'; }
     finally {button.disabled=false;}
   });
 }
@@ -33,7 +33,7 @@ if (complaint) {
   else complaint.addEventListener('submit',async event => {
     event.preventDefault(); if (!complaint.reportValidity()) return; button.disabled=true;
     try { const values=new FormData(complaint), {data,error}=await client.rpc('submit_website_complaint',{p_phone:values.get('phone'),p_text:values.get('text')}); if(error) throw error; complaint.reset(); message.textContent=`تم الإرسال بنجاح. رقم المتابعة: ${data}`; }
-    catch { message.textContent='تعذر إرسال الشكوى حالياً. حاولي لاحقاً.'; } finally {button.disabled=false;}
+    catch (error) { message.textContent=error.code === '53300' ? 'تم الوصول لحد الإرسال. يرجى المحاولة لاحقاً.' : 'تعذر إرسال الشكوى حالياً. حاولي لاحقاً.'; } finally {button.disabled=false;}
   });
 }
 const results=document.querySelector('#workerResults'), featured=document.querySelector('#featuredWorkers');
@@ -59,3 +59,4 @@ if (results || featured) {
   }
   filters.filter(Boolean).forEach(field=>field.addEventListener('input',render)); await render();
 }
+
