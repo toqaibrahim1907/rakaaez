@@ -1,0 +1,76 @@
+.site-footer .footer-main {
+  align-items: flex-start;
+  padding-bottom: 30px;
+}
+
+.site-footer .footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 82px;
+  margin-bottom: 14px;
+}
+
+.site-footer .footer-mark {
+  display: grid;
+  width: 78px;
+  height: 78px;
+  flex: 0 0 78px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .72);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+
+.site-footer .footer-mark img {
+  display: block;
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+}
+
+.site-footer .footer-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #fff;
+  line-height: 1.6;
+}
+
+.site-footer .footer-brand-copy strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.site-footer .footer-brand-copy small {
+  color: #a8c1d0;
+  font-size: .74rem;
+  font-weight: 600;
+}
+
+.site-footer .footer-main > [class*="col-"] { min-width: 0; }
+.site-footer .footer-main > [class*="col-"] h3 { margin-bottom: 14px; }
+.site-footer .footer-main > [class*="col-"] a,
+.site-footer .footer-main > [class*="col-"] span { overflow-wrap: anywhere; }
+.site-footer .footer-main > [class*="col-"]:first-child p { max-width: 340px; }
+
+.site-footer .footer-bottom {
+  gap: 12px 24px;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, .16);
+  color: #a8bdca;
+}
+
+@media (max-width: 767.98px) {
+  .site-footer { padding-top: 42px; }
+  .site-footer .footer-main { row-gap: 28px !important; }
+  .site-footer .footer-main > [class*="col-"]:first-child { width: 100%; }
+  .site-footer .footer-brand { min-height: 70px; gap: 12px; }
+  .site-footer .footer-mark { width: 68px; height: 68px; flex-basis: 68px; border-radius: 17px; }
+  .site-footer .footer-mark img { width: 60px; height: 60px; }
+  .site-footer .footer-brand-copy strong { font-size: .98rem; }
+  .site-footer .footer-main > .col-6 { width: 50%; }
+  .site-footer .footer-bottom { justify-content: space-between; font-size: .66rem; }
+}
