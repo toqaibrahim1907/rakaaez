@@ -19,7 +19,7 @@ import { reportsView } from "./modules/rental/reports.js";
 import { settingsView } from "./modules/rental/settings.js";
 import { accessView } from "./modules/rental/access.js";
 import { operationsView, auditView } from "./modules/operations.js";
-import { websiteView } from "./modules/website.js";
+import { websiteContentView, websiteOverview, websiteWorkers, websiteInbox } from "./modules/website.js";
 import { recruitmentPages, recruitmentView } from "./modules/recruitment.js";
 const root = document.querySelector("#app");
 let state = null,
@@ -29,7 +29,13 @@ const openSidebarGroups = new Set();
 let sidebarRoute;
 const navigation = [
   ["dashboard", "لوحة التحكم", "◫"],
-  ["website", "إدارة الموقع", "▤"],
+  ["website", "نظرة عامة", "◫"],
+  ["website-requests", "طلبات العملاء", "▧"],
+  ["website-complaints", "شكاوى العملاء", "⚠"],
+  ["website-workers", "ملفات العاملات", "♧"],
+  ["website-documents", "السير الذاتية", "▤"],
+  ["website-content", "محتوى الموقع", "▥"],
+  ["website-access", "الموظفون والصلاحيات", "♙"],
   ["workers", "العاملات", "♧"],
   ["documents", "السير الذاتية", "▧"],
   ["contracts", "العقود", "▤"],
@@ -47,7 +53,13 @@ const navigation = [
   ["audit", "سجل النشاط الإداري", "↶"],
 ];
 const descriptions = {
-  website: "إدارة محتوى الموقع وطلباته بحساب الموقع الموجود",
+  website: "ملخص بيانات الموقع وعمليات الفريق",
+  "website-requests": "متابعة طلبات العملاء المرسلة من الموقع",
+  "website-complaints": "متابعة شكاوى العملاء المرسلة من الموقع",
+  "website-workers": "إدارة بطاقات العاملات المنشورة على الموقع",
+  "website-documents": "إدارة السير الذاتية وصور العاملات",
+  "website-content": "تحرير محتوى الموقع ونشره",
+  "website-access": "إدارة الموظفين وصلاحياتهم في السيستم",
   identity: "الاسم والشعار والألوان وبيانات التواصل",
   dashboard: "نظرة شاملة على العاملات والعقود والالتزامات المالية",
   workers: "ملفات العاملات، التوفر، والمعلومات التشغيلية",
@@ -77,7 +89,8 @@ function navigate(next) {
 function allowed(key) {
   return (
     key === "dashboard" ||
-    (key === "website" && has(state.context, "website")) ||
+    (key === "website-access" && state.context.manager) ||
+    ((key === "website" || (key.startsWith("website-") && key !== "website-access")) && has(state.context, "website")) ||
     (key === "identity" && state.context.manager) ||
     (key === "settings" && has(state.context, "settings", "write")) ||
     (key === "access" && state.context.manager) ||
@@ -192,7 +205,7 @@ function render() {
       { "aria-label": "القائمة الرئيسية" },
       [
         ["نظرة عامة", ["dashboard"]],
-        ["الموقع الإلكتروني", ["website"]],
+        ["إدارة الموقع", ["website", "website-requests", "website-complaints", "website-workers", "website-documents", "website-content", "website-access"]],
         ["إدارة التأجير", ["workers","documents","contracts","salaries","reports","evaluations","archive","clients"]],
         ["إدارة الاستقدام", recruitmentPages.map(([route]) => route)],
         ["إدارة السكن والنقل", ["housing"]],
@@ -329,7 +342,7 @@ function render() {
       el(
         "div",
         {},
-        el("div", { class: "eyebrow" }, company + " · إدارة التأجير"),
+        el("div", { class: "eyebrow" }, company + (key === "website" || key.startsWith("website-") ? " · إدارة الموقع" : " · إدارة التأجير")),
         el("h1", {}, title),
         el("p", {}, descriptions[key] || ""),
       ),
@@ -342,7 +355,13 @@ function render() {
     );
   else {
     const views = {
-      website: () => websiteView(state),
+      website: () => websiteOverview(state),
+      "website-requests": () => websiteInbox(state, "website_requests", "طلبات العملاء"),
+      "website-complaints": () => websiteInbox(state, "website_complaints", "شكاوى العملاء"),
+      "website-workers": () => websiteWorkers(state),
+      "website-documents": () => websiteWorkers(state, true),
+      "website-content": () => websiteContentView(state),
+      "website-access": () => el("div", {}, el("p", {}, "هذه صلاحيات حسابات السيستم المشتركة، ومنها صلاحيات إدارة الموقع."), accessView(state, refresh)),
       identity: () => identityView(state, refresh, navigate),
       dashboard: () => dashboardView(state, refresh, navigate),
       workers: () => workersView(state, refresh),

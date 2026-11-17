@@ -2,7 +2,7 @@ import { el, notify, showError } from "../components/dom.js";
 import { client } from "../supabase-client.js";
 import { has } from "../permissions.js";
 
-export function websiteView(state) {
+export function websiteContentView(state) {
   const panel = el("section", { class: "panel" }, el("h2", {}, "محتوى الموقع"));
   const status = el("p", {}, "جارٍ تحميل المحتوى…");
   panel.append(status);
@@ -70,14 +70,26 @@ export function websiteView(state) {
       status.replaceWith(form, el("p", {}, "احفظ المسودة أولاً، ثم انشرها لعرضها على الموقع الجديد."));
     } catch (error) { status.textContent = "تعذر تحميل المحتوى"; showError(error); }
   })();
-  return el("div", {}, panel, websiteWorkers(state),
-    websiteInbox(state, "website_requests", "طلبات الموقع"),
-    websiteInbox(state, "website_complaints", "شكاوى الموقع"));
+  return panel;
 }
 
-function websiteWorkers(state) {
+export function websiteOverview(state) {
+  const panel = el("section", { class: "panel" }, el("h2", {}, "نظرة عامة على الموقع"));
+  const status = el("p", {}, "جارٍ تحميل الملخص…"); panel.append(status);
+  void (async () => {
+    try {
+      const org = state.context.organization_id;
+      const results = await Promise.all(["website_requests", "website_complaints", "website_workers"].map(table => client.from(table).select("id", { count: "exact", head: true }).eq("organization_id", org)));
+      const error = results.find(result => result.error)?.error; if (error) throw error;
+      status.replaceWith(el("div", { class: "stats-grid" }, ["طلبات الموقع", "شكاوى الموقع", "بطاقات العاملات"].map((label, index) => el("div", { class: "stat blue" }, el("strong", {}, results[index].count ?? 0), el("h3", {}, label)))));
+    } catch (error) { status.textContent = "تعذر تحميل الملخص."; showError(error); }
+  })();
+  return panel;
+}
+
+export function websiteWorkers(state, filesOnly = false) {
   const org = state.context.organization_id;
-  const container = el("section", { class: "panel" }, el("h2", {}, "بطاقات عاملات الموقع"));
+  const container = el("section", { class: "panel" }, el("h2", {}, filesOnly ? "السير الذاتية وصور العاملات" : "بطاقات عاملات الموقع"));
   const list = el("div", {}, "جارٍ التحميل…");
   async function load() {
     const { data, error } = await client.from("website_workers").select("id,ref,name,nationality,profession,age,experience,publication,availability,cv_path,cv_file_name,photo_path").eq("organization_id", org).order("created_at", { ascending: false });
@@ -124,6 +136,7 @@ function websiteWorkers(state) {
           });
           card.append(el("label", {}, isCv ? "السيرة PDF · حتى 15 ميجابايت" : "الصورة · حتى 5 ميجابايت", input), upload);
         }
+        if (!filesOnly) {
         const edit = el("button", { type: "button", class: "secondary" }, "تعديل البطاقة");
         edit.addEventListener("click", () => {
           if (card.querySelector("form")) return;
@@ -160,11 +173,12 @@ function websiteWorkers(state) {
           } catch (error) { showError(error); } finally { toggle.disabled = false; }
         });
         card.append(edit, toggle);
+        }
       }
       return card;
     }) : [el("p", { class: "empty" }, "لا توجد بطاقات حالياً.")]));
   }
-  if (has(state.context, "website", "write")) {
+  if (!filesOnly && has(state.context, "website", "write")) {
     const ref = el("input", { required: true, maxlength: 80 }), name = el("input", { required: true, maxlength: 150 }), nationality = el("input", { required: true, maxlength: 100 }), profession = el("input", { required: true, maxlength: 100 }), age = el("input", { maxlength: 20 }), experience = el("input", { maxlength: 200 });
     const submit = el("button", { type: "submit", class: "primary" }, "إضافة مسودة بطاقة");
     const form = el("form", {}, el("label", {}, "الرقم المرجعي", ref), el("label", {}, "الاسم الداخلي", name), el("label", {}, "الجنسية", nationality), el("label", {}, "المهنة", profession), el("label", {}, "العمر", age), el("label", {}, "الخبرة", experience), submit);
@@ -181,7 +195,7 @@ function websiteWorkers(state) {
   container.append(list); void load(); return container;
 }
 
-function websiteInbox(state, table, title) {
+export function websiteInbox(state, table, title) {
   const isComplaint = table === "website_complaints";
   const choices = isComplaint
     ? ["جديدة", "تم التواصل", "جاري الحل", "تم الحل", "تعذر التواصل"]
