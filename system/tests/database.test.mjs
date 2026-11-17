@@ -58,6 +58,19 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
     assert.equal((await asUser(employee, "update public.website_requests set status='مكتمل' returning id")).rows.length, 0);
     assert.equal((await asUser(manager, "update public.website_requests set status='مكتمل',internal_notes='follow up' returning id")).rows.length, 1);
   });
+  await t.test("public website submissions reach the company without exposing records", async () => {
+    await db.exec("set role anon");
+    try {
+      const request = await db.query("select public.submit_website_request('Test','12345678','التأجير','Details') as id");
+      assert.match(request.rows[0].id, /^REQ-/);
+      const complaint = await db.query("select public.submit_website_complaint('12345678','Test complaint') as id");
+      assert.match(complaint.rows[0].id, /^CMP-/);
+      await assert.rejects(() => db.query("select * from public.website_requests"));
+      await assert.rejects(() => db.query("select public.submit_website_request('x','1','wrong','')"));
+    } finally { await db.exec("reset role"); }
+    assert.equal((await asUser(manager, "select id from public.website_complaints")).rows.length, 1);
+    assert.equal((await asUser(outsider, "select id from public.website_complaints")).rows.length, 0);
+  });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
     assert.equal((await asUser(employee, "select phone from public.company_identity")).rows.length, 0);
