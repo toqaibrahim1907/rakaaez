@@ -1,0 +1,2 @@
+create view public.website_published_workers with (security_barrier=true) as select w.organization_id,w.ref,w.nationality,w.profession,w.service,w.age,w.experience,w.languages,w.skills from public.website_workers w join public.website_content c on c.organization_id=w.organization_id where c.published=true and w.publication='منشورة' and w.availability='متاحة'; revoke all on public.website_published_workers from public; grant select on public.website_published_workers to anon,authenticated;
+

@@ -2,12 +2,23 @@ const config = globalThis.RENTAL_CONFIG;
 const client = config?.supabaseUrl && config?.supabasePublishableKey && globalThis.supabase
   ? globalThis.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
 if (client) {
-  const { data, error } = await client.from("website_published_content").select("headline,subhead").limit(2);
+  const { data, error } = await client.from("website_published_content").select("organization_id,headline,subhead").limit(2);
   if (!error && data?.length === 1) {
     if (data[0].headline) document.querySelector("#headline").textContent = data[0].headline;
     if (data[0].subhead) document.querySelector("#subhead").textContent = data[0].subhead;
-  }
-}
+    const workers = await client.from("website_published_workers").select("ref,nationality,profession,age,experience").eq("organization_id", data[0].organization_id).limit(100);
+    const cards = document.querySelector("#worker-cards");
+    if (workers.error) cards.textContent = "تعذر تحميل البطاقات حالياً.";
+    else if (!workers.data.length) cards.textContent = "لا توجد بطاقات متاحة حالياً.";
+    else cards.replaceChildren(...workers.data.map(worker => {
+      const card = document.createElement("article");
+      for (const value of [worker.ref, worker.profession, worker.nationality, worker.age, worker.experience]) {
+        if (!value) continue; const line = document.createElement("p"); line.textContent = value; card.append(line);
+      }
+      return card;
+    }));
+  } else document.querySelector("#worker-cards").textContent = "لا توجد بطاقات متاحة حالياً.";
+} else document.querySelector("#worker-cards").textContent = "لا توجد بطاقات متاحة حالياً.";
 for (const [id, rpc, fields] of [
   ["request-form", "submit_website_request", {name:"p_name",mobile:"p_mobile",service:"p_service",notes:"p_notes"}],
   ["complaint-form", "submit_website_complaint", {phone:"p_phone",text:"p_text"}],
@@ -26,3 +37,4 @@ for (const [id, rpc, fields] of [
     finally { submit.disabled = false; }
   });
 }
+

@@ -71,6 +71,17 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
     assert.equal((await asUser(manager, "select id from public.website_complaints")).rows.length, 1);
     assert.equal((await asUser(outsider, "select id from public.website_complaints")).rows.length, 0);
   });
+  await t.test("public worker cards exclude private fields and unpublished workers", async () => {
+    await asUser(manager, `insert into public.website_workers(organization_id,ref,name,nationality,profession,publication,cv_path,cv_file_name,passport_number,total_recruitment_cost) values('${org}','PUBLIC-1','Private name','Test','Worker','منشورة','private.pdf','private.pdf','SECRET',100),('${org}','DRAFT-1','Draft','Test','Worker','مسودة','','','',0)`);
+    await db.exec("set role anon");
+    try {
+      const rows = (await db.query("select * from public.website_published_workers")).rows;
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].ref, "PUBLIC-1");
+      for (const key of ["name", "passport_number", "cv_path", "total_recruitment_cost"]) assert.equal(rows[0][key], undefined);
+      await assert.rejects(() => db.query("select * from public.website_workers"));
+    } finally { await db.exec("reset role"); }
+  });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
     assert.equal((await asUser(employee, "select phone from public.company_identity")).rows.length, 0);

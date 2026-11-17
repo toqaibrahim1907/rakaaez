@@ -46,9 +46,51 @@ export function websiteView(state) {
       status.replaceWith(form, el("p", {}, "احفظ المسودة أولاً، ثم انشرها لعرضها على الموقع الجديد."));
     } catch (error) { status.textContent = "تعذر تحميل المحتوى"; showError(error); }
   })();
-  return el("div", {}, panel,
+  return el("div", {}, panel, websiteWorkers(state),
     websiteInbox(state, "website_requests", "طلبات الموقع"),
     websiteInbox(state, "website_complaints", "شكاوى الموقع"));
+}
+
+function websiteWorkers(state) {
+  const org = state.context.organization_id;
+  const container = el("section", { class: "panel" }, el("h2", {}, "بطاقات عاملات الموقع"));
+  const list = el("div", {}, "جارٍ التحميل…");
+  async function load() {
+    const { data, error } = await client.from("website_workers").select("id,ref,name,nationality,profession,age,experience,publication,availability").eq("organization_id", org).order("created_at", { ascending: false });
+    if (error) { showError(error); list.textContent = "تعذر تحميل البطاقات"; return; }
+    list.replaceChildren(...(data.length ? data.map(row => {
+      const card = el("article", { class: "website-inbox-card" }, el("strong", {}, row.ref), el("p", {}, `${row.name} · ${row.nationality} · ${row.profession}`), el("p", {}, `${row.publication} · ${row.availability}`));
+      if (has(state.context, "website", "write")) {
+        const toggle = el("button", { type: "button", class: "secondary" }, row.publication === "منشورة" ? "إلغاء النشر" : "نشر البطاقة");
+        toggle.addEventListener("click", async () => {
+          toggle.disabled = true;
+          try {
+            const result = await client.from("website_workers").update({ publication: row.publication === "منشورة" ? "مسودة" : "منشورة", updated_at: new Date().toISOString() }).eq("organization_id", org).eq("id", row.id).select("id");
+            if (result.error) throw result.error;
+            if (!result.data.length) throw new Error("تعذر تحديث البطاقة");
+            await load(); notify("تم تحديث البطاقة");
+          } catch (error) { showError(error); } finally { toggle.disabled = false; }
+        });
+        card.append(toggle);
+      }
+      return card;
+    }) : [el("p", { class: "empty" }, "لا توجد بطاقات حالياً.")]));
+  }
+  if (has(state.context, "website", "write")) {
+    const ref = el("input", { required: true, maxlength: 80 }), name = el("input", { required: true, maxlength: 150 }), nationality = el("input", { required: true, maxlength: 100 }), profession = el("input", { required: true, maxlength: 100 }), age = el("input", { maxlength: 20 }), experience = el("input", { maxlength: 200 });
+    const submit = el("button", { type: "submit", class: "primary" }, "إضافة مسودة بطاقة");
+    const form = el("form", {}, el("label", {}, "الرقم المرجعي", ref), el("label", {}, "الاسم الداخلي", name), el("label", {}, "الجنسية", nationality), el("label", {}, "المهنة", profession), el("label", {}, "العمر", age), el("label", {}, "الخبرة", experience), submit);
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); submit.disabled = true;
+      try {
+        const result = await client.from("website_workers").insert({ organization_id: org, ref: ref.value.trim(), name: name.value.trim(), nationality: nationality.value.trim(), profession: profession.value.trim(), age: age.value.trim(), experience: experience.value.trim(), cv_path: "", cv_file_name: "" });
+        if (result.error) throw result.error;
+        form.reset(); await load(); notify("تمت إضافة المسودة");
+      } catch (error) { showError(error); } finally { submit.disabled = false; }
+    });
+    container.append(form, el("p", {}, "الاسم داخلي ولا يظهر للزوار. رفع الصور والسير الذاتية لم يُفعّل بعد."));
+  }
+  container.append(list); void load(); return container;
 }
 
 function websiteInbox(state, table, title) {
