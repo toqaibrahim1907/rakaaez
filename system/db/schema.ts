@@ -1,0 +1,6 @@
+import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
+export const roles = sqliteTable('roles', { id: text('id').primaryKey(), name: text('name').notNull(), permissions: text('permissions').notNull() });
+export const members = sqliteTable('members', { email: text('email').primaryKey(), roleId: text('role_id').notNull().references(() => roles.id), createdAt: text('created_at').notNull() });
+export const records = sqliteTable('records', { id: text('id').primaryKey(), kind: text('kind').notNull(), data: text('data').notNull(), externalId: text('external_id'), createdAt: text('created_at').notNull(), updatedAt: text('updated_at').notNull(), version: integer('version').notNull().default(1) }, t => [uniqueIndex('external_record').on(t.kind,t.externalId)]);
+export const documents = sqliteTable('documents', { id: text('id').primaryKey(), workerId: text('worker_id').notNull().references(() => records.id), category: text('category').notNull(), name: text('name').notNull(), mime: text('mime').notNull(), size: integer('size').notNull(), createdAt: text('created_at').notNull() });
+export const audit = sqliteTable('audit', { id: text('id').primaryKey(), actor: text('actor').notNull(), action: text('action').notNull(), entity: text('entity').notNull(), at: text('at').notNull() });

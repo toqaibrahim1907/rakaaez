@@ -1,0 +1,2 @@
+-- No company or personal data is seeded automatically.
+-- Provision an explicit first manager using docs/bootstrap-company.sql.

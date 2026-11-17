@@ -1,0 +1,23 @@
+{
+  "name": "alkaiz-rental-management",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "node scripts/build-static.mjs",
+    "dev": "node scripts/serve-static.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check-static.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.49.8",
+    "bootstrap": "5.3.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "linkedom": "0.18.12"
+  }
+}

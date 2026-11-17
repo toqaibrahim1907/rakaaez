@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <title>الركائز | إدارة التأجير</title>
+    <meta name="description" content="إدارة العاملات والعقود والرواتب" />
+    <link rel="stylesheet" href="/assets/vendor/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="/assets/css/rental.css" />
+    <link rel="stylesheet" href="/assets/css/supabase.css" />
+    <link rel="stylesheet" href="/assets/css/stitch.css" />
+  </head>
+  <body>
+    <div id="app"><div class="empty">جارٍ تحميل إدارة التأجير…</div></div>
+    <div
+      class="toast-container position-fixed bottom-0 start-0 p-3"
+      id="notifications"
+      aria-live="polite"
+    ></div>
+    <div
+      class="modal fade"
+      id="record-modal"
+      tabindex="-1"
+      aria-labelledby="modal-title"
+      aria-hidden="true"
+    >
+      <div
+        class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+      >
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="modal-heading">
+              <span class="modal-heading-icon" aria-hidden="true">▤</span>
+              <div class="modal-heading-text">
+                <small class="modal-kicker">مساحة العمل</small>
+                <h2 class="modal-title" id="modal-title" tabindex="-1"></h2>
+              </div>
+            </div>
+            <button
+              class="btn-close"
+              type="button"
+              data-bs-dismiss="modal"
+              aria-label="إغلاق"
+            ></button>
+          </div>
+          <div class="modal-body" id="modal-body"></div>
+        </div>
+      </div>
+    </div>
+    <script src="/public-config.js"></script>
+    <script src="/assets/vendor/supabase.js"></script>
+    <script src="/assets/vendor/bootstrap.bundle.min.js"></script>
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

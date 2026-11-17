@@ -1,0 +1,1 @@
+Rental documents are stored privately in R2, never in public assets.
