@@ -46,6 +46,53 @@ export function websiteView(state) {
       status.replaceWith(form, el("p", {}, "احفظ المسودة أولاً، ثم انشرها لعرضها على الموقع الجديد."));
     } catch (error) { status.textContent = "تعذر تحميل المحتوى"; showError(error); }
   })();
-  return panel;
+  return el("div", {}, panel,
+    websiteInbox(state, "website_requests", "طلبات الموقع"),
+    websiteInbox(state, "website_complaints", "شكاوى الموقع"));
+}
+
+function websiteInbox(state, table, title) {
+  const isComplaint = table === "website_complaints";
+  const choices = isComplaint
+    ? ["جديدة", "تم التواصل", "جاري الحل", "تم الحل", "تعذر التواصل"]
+    : ["لم يتم التواصل", "تم التواصل", "تم التواصل ولم يرد", "رد العميل", "مكتمل", "معتذر عنه"];
+  const container = el("section", { class: "panel" }, el("h2", {}, title));
+  const list = el("div", {}, el("p", {}, "جارٍ التحميل…"));
+  container.append(list);
+  void (async () => {
+    try {
+      const org = state.context.organization_id;
+      const fields = isComplaint ? "id,phone,complaint_text,status,internal_notes,created_at" : "id,customer_name,mobile,service,notes,status,internal_notes,created_at";
+      const { data, error } = await client.from(table).select(fields).eq("organization_id", org).order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!data.length) { list.replaceChildren(el("p", { class: "empty" }, "لا توجد سجلات حالياً.")); return; }
+      list.replaceChildren(...data.map(row => {
+        const status = el("select", { "aria-label": "الحالة", disabled: !has(state.context, "website", "write") },
+          [...new Set([...choices, row.status])].map(value => el("option", { value }, value)));
+        status.value = row.status;
+        const notes = el("textarea", { rows: 2, "aria-label": "ملاحظات المتابعة", disabled: !has(state.context, "website", "write") }, row.internal_notes || "");
+        const card = el("article", { class: "website-inbox-card" },
+          el("strong", {}, row.id),
+          el("p", {}, isComplaint ? row.phone : `${row.customer_name} · ${row.mobile} · ${row.service}`),
+          el("p", {}, isComplaint ? row.complaint_text : row.notes),
+          el("label", {}, "الحالة", status), el("label", {}, "ملاحظات المتابعة", notes));
+        if (has(state.context, "website", "write")) {
+          const save = el("button", { type: "button", class: "secondary" }, "حفظ المتابعة");
+          save.addEventListener("click", async () => {
+            save.disabled = true;
+            try {
+              const result = await client.from(table).update({ status: status.value, internal_notes: notes.value, updated_at: new Date().toISOString() }).eq("organization_id", org).eq("id", row.id).select("id");
+              if (result.error) throw result.error;
+              if (!result.data.length) throw new Error("تعذر حفظ المتابعة؛ تحققي من الصلاحيات.");
+              notify("تم حفظ المتابعة");
+            } catch (error) { showError(error); } finally { save.disabled = false; }
+          });
+          card.append(save);
+        }
+        return card;
+      }));
+    } catch (error) { list.replaceChildren(el("p", {}, "تعذر تحميل السجلات.")); showError(error); }
+  })();
+  return container;
 }
 

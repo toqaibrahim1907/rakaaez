@@ -51,6 +51,13 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
       await assert.rejects(() => db.query("select * from public.website_content"));
     } finally { await db.exec("reset role"); }
   });
+  await t.test("website request follow-up requires website access and stays company scoped", async () => {
+    await asUser(manager, `insert into public.website_requests(id,organization_id,customer_name,mobile,service) values('request-test','${org}','Test','12345678','التأجير')`);
+    assert.equal((await asUser(employee, "select * from public.website_requests")).rows.length, 0);
+    assert.equal((await asUser(outsider, "select * from public.website_requests")).rows.length, 0);
+    assert.equal((await asUser(employee, "update public.website_requests set status='مكتمل' returning id")).rows.length, 0);
+    assert.equal((await asUser(manager, "update public.website_requests set status='مكتمل',internal_notes='follow up' returning id")).rows.length, 1);
+  });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
     assert.equal((await asUser(employee, "select phone from public.company_identity")).rows.length, 0);
