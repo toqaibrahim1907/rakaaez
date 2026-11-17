@@ -1,0 +1,2 @@
+create table public.website_content (organization_id uuid primary key references public.organizations(id), headline text not null default '', subhead text not null default '', theme text not null default 'blue', sections jsonb not null default '[]'::jsonb, images jsonb not null default '{}'::jsonb, draft jsonb not null default '{}'::jsonb, published boolean not null default false, updated_at timestamptz not null default now()); alter table public.website_content enable row level security; revoke all on public.website_content from anon, authenticated;
+

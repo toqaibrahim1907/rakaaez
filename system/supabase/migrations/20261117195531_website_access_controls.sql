@@ -1,0 +1,22 @@
+insert into public.permissions(code,module,description) values ('rental.website.read','website','View website administration'),('rental.website.write','website','Manage website administration') on conflict (code) do nothing;
+alter table public.website_workers add constraint website_workers_organization_ref_unique unique (organization_id,ref);
+alter table public.website_requests drop constraint website_requests_worker_ref_fkey;
+alter table public.website_requests add constraint website_requests_organization_worker_fkey foreign key (organization_id,worker_ref) references public.website_workers (organization_id,ref);
+grant select,insert,update,delete on public.website_content,public.website_workers,public.website_requests,public.website_complaints to authenticated;
+create policy website_content_select on public.website_content for select to authenticated using (private.has_permission(organization_id,'rental.website.read'));
+create policy website_content_insert on public.website_content for insert to authenticated with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_content_update on public.website_content for update to authenticated using (private.has_permission(organization_id,'rental.website.write')) with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_content_delete on public.website_content for delete to authenticated using (private.has_permission(organization_id,'rental.website.write'));
+create policy website_workers_select on public.website_workers for select to authenticated using (private.has_permission(organization_id,'rental.website.read'));
+create policy website_workers_insert on public.website_workers for insert to authenticated with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_workers_update on public.website_workers for update to authenticated using (private.has_permission(organization_id,'rental.website.write')) with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_workers_delete on public.website_workers for delete to authenticated using (private.has_permission(organization_id,'rental.website.write'));
+create policy website_requests_select on public.website_requests for select to authenticated using (private.has_permission(organization_id,'rental.website.read'));
+create policy website_requests_insert on public.website_requests for insert to authenticated with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_requests_update on public.website_requests for update to authenticated using (private.has_permission(organization_id,'rental.website.write')) with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_requests_delete on public.website_requests for delete to authenticated using (private.has_permission(organization_id,'rental.website.write'));
+create policy website_complaints_select on public.website_complaints for select to authenticated using (private.has_permission(organization_id,'rental.website.read'));
+create policy website_complaints_insert on public.website_complaints for insert to authenticated with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_complaints_update on public.website_complaints for update to authenticated using (private.has_permission(organization_id,'rental.website.write')) with check (private.has_permission(organization_id,'rental.website.write'));
+create policy website_complaints_delete on public.website_complaints for delete to authenticated using (private.has_permission(organization_id,'rental.website.write'));
+

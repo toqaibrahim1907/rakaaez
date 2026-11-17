@@ -38,6 +38,19 @@ test("PostgreSQL migrations, authorization, isolation and audit integrity", asyn
       await db.exec("reset role;");
     }
   };
+  await t.test("website data is scoped and only published content is public", async () => {
+    await asUser(manager, `insert into public.website_content(organization_id,headline,draft,published) values('${org}','Public title','{"headline":"Private draft"}',true)`);
+    assert.equal((await asUser(employee, "select * from public.website_content")).rows.length, 0);
+    assert.equal((await asUser(outsider, "select * from public.website_content")).rows.length, 0);
+    await assert.rejects(() => asUser(employee, `insert into public.website_content(organization_id) values('${other}')`));
+    await db.exec("set role anon");
+    try {
+      const publicRows = await db.query("select * from public.website_published_content");
+      assert.equal(publicRows.rows[0].headline, "Public title");
+      assert.equal(publicRows.rows[0].draft, undefined);
+      await assert.rejects(() => db.query("select * from public.website_content"));
+    } finally { await db.exec("reset role"); }
+  });
   await t.test("company branding permits only scoped manager writes and limits members to branding fields", async () => {
     await asUser(manager, `insert into public.company_identity(organization_id,name_ar,phone) values('${org}','Test company','123')`);
     assert.equal((await asUser(employee, "select phone from public.company_identity")).rows.length, 0);
