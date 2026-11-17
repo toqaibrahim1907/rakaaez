@@ -1,9 +1,11 @@
 const config = globalThis.RENTAL_CONFIG;
 const client = config?.supabaseUrl && config?.supabasePublishableKey && globalThis.supabase
   ? globalThis.supabase.createClient(config.supabaseUrl, config.supabasePublishableKey) : null;
+let siteReady = false;
 if (client) {
   const { data, error } = await client.from("website_published_content").select("organization_id,headline,subhead").limit(2);
   if (!error && data?.length === 1) {
+    siteReady = true;
     if (data[0].headline) document.querySelector("#headline").textContent = data[0].headline;
     if (data[0].subhead) document.querySelector("#subhead").textContent = data[0].subhead;
     const workers = await client.from("website_published_workers").select("ref,nationality,profession,age,experience,photo_path").eq("organization_id", data[0].organization_id).limit(100);
@@ -32,7 +34,7 @@ for (const [id, rpc, fields] of [
   ["complaint-form", "submit_website_complaint", {phone:"p_phone",text:"p_text"}],
 ]) {
   const form = document.getElementById(id), status = form.querySelector('[role="status"]'), submit = form.querySelector('button');
-  if (!client) { submit.disabled = true; status.textContent = "الخدمة غير متاحة حالياً."; continue; }
+  if (!client || !siteReady) { submit.disabled = true; status.textContent = "استقبال الطلبات غير متاح حالياً."; continue; }
   form.addEventListener("submit", async event => {
     event.preventDefault(); if (!form.reportValidity()) return;
     submit.disabled = true; status.textContent = "جارٍ الإرسال…";
