@@ -56,11 +56,50 @@ function websiteWorkers(state) {
   const container = el("section", { class: "panel" }, el("h2", {}, "بطاقات عاملات الموقع"));
   const list = el("div", {}, "جارٍ التحميل…");
   async function load() {
-    const { data, error } = await client.from("website_workers").select("id,ref,name,nationality,profession,age,experience,publication,availability").eq("organization_id", org).order("created_at", { ascending: false });
+    const { data, error } = await client.from("website_workers").select("id,ref,name,nationality,profession,age,experience,publication,availability,cv_path,cv_file_name,photo_path").eq("organization_id", org).order("created_at", { ascending: false });
     if (error) { showError(error); list.textContent = "تعذر تحميل البطاقات"; return; }
     list.replaceChildren(...(data.length ? data.map(row => {
       const card = el("article", { class: "website-inbox-card" }, el("strong", {}, row.ref), el("p", {}, `${row.name} · ${row.nationality} · ${row.profession}`), el("p", {}, `${row.publication} · ${row.availability}`));
+      for (const [label, bucket, path] of [["فتح السيرة", "website-worker-cvs", row.cv_path], ["فتح الصورة", "website-worker-photos", row.photo_path]]) {
+        if (!path) continue;
+        const open = el("button", { type: "button", class: "secondary" }, label);
+        open.addEventListener("click", async () => {
+          try {
+            const { data, error } = await client.storage.from(bucket).createSignedUrl(path, 60);
+            if (error) throw error;
+            const link = el("a", { href: data.signedUrl, target: "_blank", rel: "noopener noreferrer" }, "فتح الرابط المؤقت");
+            open.replaceWith(link);
+          } catch (error) { showError(error); }
+        });
+        card.append(open);
+      }
       if (has(state.context, "website", "write")) {
+        for (const kind of ["cv", "photo"]) {
+          const isCv = kind === "cv", bucket = isCv ? "website-worker-cvs" : "website-worker-photos";
+          const input = el("input", { type: "file", accept: isCv ? "application/pdf" : "image/jpeg,image/png,image/webp" });
+          const upload = el("button", { type: "button", class: "secondary" }, isCv ? "رفع السيرة" : "رفع الصورة");
+          upload.addEventListener("click", async () => {
+            const file = input.files?.[0];
+            if (!file || !file.size || file.size > (isCv ? 15728640 : 5242880)) { showError(new Error("اختاري ملفاً صالحاً بالحجم المسموح.")); return; }
+            const bytes = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+            const valid = isCv ? new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-" :
+              (file.type === "image/jpeg" && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) ||
+              (file.type === "image/png" && [137,80,78,71,13,10,26,10].every((v, i) => bytes[i] === v)) ||
+              (file.type === "image/webp" && new TextDecoder().decode(bytes.slice(0,4)) === "RIFF" && new TextDecoder().decode(bytes.slice(8,12)) === "WEBP");
+            if (!valid) { showError(new Error("نوع الملف غير مدعوم أو لا يطابق محتواه.")); return; }
+            upload.disabled = true; const path = `${org}/${row.id}/${crypto.randomUUID()}`; let uploaded = false;
+            try {
+              const result = await client.storage.from(bucket).upload(path, file, { contentType: isCv ? "application/pdf" : file.type, upsert: false });
+              if (result.error) throw result.error; uploaded = true;
+              const update = await client.from("website_workers").update(isCv ? { cv_path: path, cv_file_name: file.name.slice(0, 200) } : { photo_path: path }).eq("organization_id", org).eq("id", row.id).select("id");
+              if (update.error) throw update.error;
+              if (!update.data.length) throw new Error("تعذر ربط الملف بالبطاقة.");
+              await load(); notify("تم رفع الملف");
+            } catch (error) { if (uploaded) await client.storage.from(bucket).remove([path]); showError(error); }
+            finally { upload.disabled = false; }
+          });
+          card.append(el("label", {}, isCv ? "السيرة PDF · حتى 15 ميجابايت" : "الصورة · حتى 5 ميجابايت", input), upload);
+        }
         const edit = el("button", { type: "button", class: "secondary" }, "تعديل البطاقة");
         edit.addEventListener("click", () => {
           if (card.querySelector("form")) return;
@@ -113,7 +152,7 @@ function websiteWorkers(state) {
         form.reset(); await load(); notify("تمت إضافة المسودة");
       } catch (error) { showError(error); } finally { submit.disabled = false; }
     });
-    container.append(form, el("p", {}, "الاسم داخلي ولا يظهر للزوار. رفع الصور والسير الذاتية لم يُفعّل بعد."));
+    container.append(form, el("p", {}, "الاسم والملفات خاصة. الصور لا تظهر في الموقع العام بعد."));
   }
   container.append(list); void load(); return container;
 }
